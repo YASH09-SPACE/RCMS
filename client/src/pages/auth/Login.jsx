@@ -1,133 +1,147 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useAuth } from '../../hooks/useAuth';
-import Button from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, Wrench } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import AuthLayout from '../../components/AuthLayout';
+import toast from 'react-hot-toast';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading, error, clearError } = useAuth();
   const navigate = useNavigate();
+  const { login, getDashboardPath } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    clearError();
+
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
     try {
-      const user = await login(email, password);
-      const routes = { citizen: '/citizen/dashboard', admin: '/admin/dashboard', field: '/field/tasks' };
-      navigate(routes[user.role] || '/citizen/dashboard');
+      const res = await login(formData.email, formData.password);
+      toast.success(`Welcome back, ${res.data.user.name}!`);
+
+      // Redirect based on role
+      const dashPath = getDashboardPath();
+      navigate(dashPath);
     } catch (err) {
-      // Error is set in store
+      const msg = err.response?.data?.message || 'Login failed. Please try again.';
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      {/* Mobile branding */}
-      <div className="lg:hidden mb-8">
-        <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-subtle">Civic Tech Platform</span>
-        <h1 className="text-2xl font-bold text-foreground mt-1">RIRRS</h1>
-      </div>
-
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
-        <p className="text-sm text-muted mt-1">Sign in to your account to continue</p>
-      </div>
-
-      {/* Demo credentials */}
-      <div className="mb-6 p-4 rounded-xl bg-primary-50 border border-primary-200">
-        <p className="text-xs font-semibold text-primary-700 mb-2">Demo Credentials</p>
-        <div className="space-y-1">
-          {[
-            { role: 'Citizen', email: 'citizen@rirrs.in', pass: 'citizen123' },
-            { role: 'Admin', email: 'admin@rirrs.in', pass: 'admin123' },
-            { role: 'Field Worker', email: 'fieldworker@rirrs.in', pass: 'field123' },
-          ].map((cred) => (
-            <button
-              key={cred.role}
-              type="button"
-              onClick={() => { setEmail(cred.email); setPassword(cred.pass); }}
-              className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs hover:bg-primary-100 transition-colors group text-left"
-            >
-              <span className="font-medium text-primary-600">{cred.role}</span>
-              <span className="text-primary-400 font-mono group-hover:text-primary-600 transition-colors">{cred.email}</span>
-            </button>
-          ))}
+    <AuthLayout>
+      <div className="auth-card">
+        {/* Icon */}
+        <div className="auth-card-icon">
+          <Wrench size={22} />
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+        <h1>Welcome Back</h1>
+        <p className="subtitle">Log in to manage your reports</p>
+
         {error && (
-          <div className="p-3 rounded-lg bg-accent-red-light border border-accent-red/20 text-sm text-accent-red">
+          <div className="form-error">
+            <AlertCircle size={16} />
             {error}
           </div>
         )}
 
-        <Input
-          label="Email"
-          type="email"
-          icon={Mail}
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <form onSubmit={handleSubmit}>
+          {/* Email */}
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <div className="form-input-wrapper">
+              <input
+                type="email"
+                name="email"
+                className="form-input"
+                placeholder="name@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                autoComplete="email"
+              />
+              <Mail size={16} className="form-input-icon" />
+            </div>
+          </div>
 
-        <div className="relative">
-          <Input
-            label="Password"
-            type={showPassword ? 'text' : 'password'}
-            icon={Lock}
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-[38px] text-subtle hover:text-foreground transition-colors"
-          >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          {/* Password */}
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <div className="form-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                className="form-input"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                autoComplete="current-password"
+              />
+              <Lock size={16} className="form-input-icon" />
+              <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Remember Me + Forgot Password */}
+          <div className="form-extras">
+            <label className="form-checkbox">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              <span className="form-checkbox-text">Remember me</span>
+            </label>
+            <Link to="/forgot-password" className="forgot-link">Forgot Password?</Link>
+          </div>
+
+          {/* Submit */}
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? <span className="spinner"></span> : <>Login <ArrowRight size={16} /></>}
           </button>
+        </form>
+
+        {/* Divider */}
+        <div className="auth-divider">
+          <span>or</span>
         </div>
 
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm text-muted cursor-pointer">
-            <input type="checkbox" className="rounded border-border" />
-            Remember me
-          </label>
-          <Link to="/forgot-password" className="text-sm text-primary-500 hover:text-primary-600 font-medium transition-colors">
-            Forgot password?
-          </Link>
+        {/* Google Sign In */}
+        <button className="btn btn-google" type="button">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
+          Sign in with Google
+        </button>
+
+        {/* Footer Link */}
+        <div className="auth-footer-link">
+          New to RoadCare? <Link to="/register">Create an account</Link>
         </div>
-
-        <Button
-          type="submit"
-          size="lg"
-          loading={isLoading}
-          className="w-full"
-          iconRight={ArrowRight}
-        >
-          Sign in
-        </Button>
-      </form>
-
-      <p className="mt-6 text-center text-sm text-muted">
-        Don't have an account?{' '}
-        <Link to="/register" className="text-primary-500 hover:text-primary-600 font-medium transition-colors">
-          Create account
-        </Link>
-      </p>
-    </motion.div>
+      </div>
+    </AuthLayout>
   );
 };
 

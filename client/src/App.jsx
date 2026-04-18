@@ -1,82 +1,146 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-
-// Layouts
-import RootLayout from './layouts/RootLayout';
-import AuthLayout from './layouts/AuthLayout';
-import CitizenLayout from './layouts/CitizenLayout';
-import AdminLayout from './layouts/AdminLayout';
-import FieldLayout from './layouts/FieldLayout';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 
-// Citizen Pages
-import Dashboard from './pages/citizen/Dashboard';
-import ReportIssue from './pages/citizen/ReportIssue';
-import PublicMap from './pages/citizen/PublicMap';
-import IssueDetail from './pages/citizen/IssueDetail';
-import Profile from './pages/citizen/Profile';
+// Protected Route wrapper
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const { user, loading, isAuthenticated } = useAuth();
 
-// Admin Pages
-import AdminDashboard from './pages/admin/AdminDashboard';
-import IssueQueue from './pages/admin/IssueQueue';
-import AdminIssueDetail from './pages/admin/AdminIssueDetail';
-import WorkerManagement from './pages/admin/WorkerManagement';
-import Analytics from './pages/admin/Analytics';
-import Settings from './pages/admin/Settings';
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', background: '#0f1117', color: '#fff', fontFamily: 'Inter, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 36, height: 36, border: '3px solid rgba(66,133,244,0.2)',
+            borderTopColor: '#4285f4', borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite', margin: '0 auto 16px'
+          }} />
+          <p style={{ color: '#6b7280' }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
-// Field Worker Pages
-import FieldTasks from './pages/field/FieldTasks';
-import TaskDetail from './pages/field/TaskDetail';
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
+
+// Redirect authenticated users away from auth pages
+const AuthRoute = ({ children }) => {
+  const { isAuthenticated, loading, getDashboardPath } = useAuth();
+
+  if (loading) return null;
+  if (isAuthenticated) return <Navigate to={getDashboardPath()} replace />;
+
+  return children;
+};
 
 function App() {
   return (
-    <Routes>
-      <Route element={<RootLayout />}>
-        {/* Public Redirect */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+    <BrowserRouter>
+      <AuthProvider>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: '#1a1d26',
+              color: '#fff',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontFamily: 'Inter, sans-serif',
+              padding: '12px 16px',
+              border: '1px solid rgba(255,255,255,0.06)'
+            },
+            success: {
+              iconTheme: { primary: '#22c55e', secondary: '#fff' }
+            },
+            error: {
+              iconTheme: { primary: '#ef4444', secondary: '#fff' }
+            }
+          }}
+        />
 
-        {/* Auth Routes */}
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+        <Routes>
+          {/* Auth Routes */}
+          <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
+          <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-        </Route>
+          <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Citizen Routes */}
-        <Route path="/citizen" element={<CitizenLayout />}>
-          <Route index element={<Navigate to="/citizen/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="report" element={<ReportIssue />} />
-          <Route path="map" element={<PublicMap />} />
-          <Route path="issues/:id" element={<IssueDetail />} />
-          <Route path="profile" element={<Profile />} />
-        </Route>
+          {/* Placeholder routes for dashboards */}
+          <Route path="/citizen/dashboard" element={
+            <ProtectedRoute allowedRoles={['citizen']}>
+              <PlaceholderDashboard role="Citizen" />
+            </ProtectedRoute>
+          } />
+          <Route path="/constructor/dashboard" element={
+            <ProtectedRoute allowedRoles={['constructor']}>
+              <PlaceholderDashboard role="Constructor" />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <PlaceholderDashboard role="Admin" />
+            </ProtectedRoute>
+          } />
+          <Route path="/superadmin/dashboard" element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <PlaceholderDashboard role="Super Admin" />
+            </ProtectedRoute>
+          } />
 
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="issues" element={<IssueQueue />} />
-          <Route path="issues/:id" element={<AdminIssueDetail />} />
-          <Route path="workers" element={<WorkerManagement />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
+          {/* Default redirect */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
 
-        {/* Field Worker Routes */}
-        <Route path="/field" element={<FieldLayout />}>
-          <Route index element={<Navigate to="/field/tasks" replace />} />
-          <Route path="tasks" element={<FieldTasks />} />
-          <Route path="tasks/:id" element={<TaskDetail />} />
-        </Route>
-
-        {/* Fallback 404 */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Route>
-    </Routes>
+// Temporary placeholder
+function PlaceholderDashboard({ role }) {
+  const { user, logout } = useAuth();
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      height: '100vh', background: '#0f1117', color: '#fff', fontFamily: 'Inter, sans-serif', gap: '16px'
+    }}>
+      <div style={{
+        background: 'rgba(66,133,244,0.1)', padding: '24px 48px', borderRadius: '16px',
+        textAlign: 'center', border: '1px solid rgba(66,133,244,0.15)'
+      }}>
+        <h1 style={{ fontSize: '28px', marginBottom: '8px' }}>🛣️ {role} Dashboard</h1>
+        <p style={{ color: '#6b7280', marginBottom: '4px' }}>Welcome, {user?.name}</p>
+        <p style={{ color: '#4285f4', fontSize: '14px' }}>{user?.email}</p>
+      </div>
+      <button
+        onClick={logout}
+        style={{
+          background: '#ef4444', color: '#fff', border: 'none', padding: '10px 24px',
+          borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: '600'
+        }}
+      >
+        Logout
+      </button>
+    </div>
   );
 }
 
