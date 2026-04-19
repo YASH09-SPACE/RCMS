@@ -47,10 +47,12 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  resetPasswordOtp: String,
+  resetPasswordExpire: Date,
   profileImage: {
     type: String,
-    default: null
-  }
+    default: 'default.jpg'
+  },
 }, {
   timestamps: true
 });

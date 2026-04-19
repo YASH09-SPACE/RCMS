@@ -178,6 +178,32 @@ const templates = {
         </div>
       </div>
     `
+  }),
+
+  // 9. OTP Verification - to Citizen
+  otpVerification: (data) => ({
+    subject: `Email Verification OTP - RCMS Gujarat`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
+        <div style="background: #1a73e8; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">🛡️ RCMS Gujarat - Verification</h2>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px; text-align: center;">
+          <h3 style="color: #333;">Identify Verification</h3>
+          <p>Please use the following 6-digit code to complete your registration.</p>
+          <div style="background: #f1f3f4; padding: 15px; font-size: 32px; font-weight: bold; letter-spacing: 10px; color: #1a73e8; border-radius: 8px; margin: 20px 0;">
+            ${data.otp}
+          </div>
+          <p style="color: #666; font-size: 14px;">This code will expire in 10 minutes. Do not share this OTP with anyone.</p>
+        </div>
+      </div>
+    `
+  }),
+
+  // 10. Custom Email (For other events)
+  custom: (data) => ({
+    subject: data.subject,
+    html: data.html
   })
 };
 

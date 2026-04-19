@@ -125,16 +125,6 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Divider */}
-        <div className="auth-divider">
-          <span>or</span>
-        </div>
-
-        {/* Google Sign In */}
-        <button className="btn btn-google" type="button">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
-          Sign in with Google
-        </button>
 
         {/* Footer Link */}
         <div className="auth-footer-link">

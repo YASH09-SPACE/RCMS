@@ -1,14 +1,23 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
 // Load env vars
 dotenv.config();
 
-// Connect to database
-connectDB();
+// Connect to database (skip in test environment as tests handle their own connection)
+if (process.env.NODE_ENV !== 'test') {
+  connectDB();
+}
+
+// Initialize Cron Jobs (only in non-test environment)
+if (process.env.NODE_ENV !== 'test') {
+  const startSlaMonitor = require('./cron/slaMonitor');
+  startSlaMonitor();
+}
 
 const app = express();
 
@@ -25,9 +34,18 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // ----- ROUTES -----
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/location', require('./routes/locationRoutes'));
+app.use('/api/complaints', require('./routes/complaintRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/constructor', require('./routes/constructorRoutes'));
+app.use('/api/superadmin', require('./routes/superAdminRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/citizen', require('./routes/citizenRoutes'));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -39,8 +57,15 @@ app.use(require('./middleware/errorHandler'));
 
 // ----- START SERVER -----
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 RCMS Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-  console.log(`📡 API: http://localhost:${PORT}/api`);
-  console.log(`❤️  Health: http://localhost:${PORT}/api/health\n`);
-});
+
+// Only start server if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 RCMS Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+    console.log(`📡 API: http://localhost:${PORT}/api`);
+    console.log(`❤️  Health: http://localhost:${PORT}/api/health\n`);
+  });
+}
+
+// Export app for testing
+module.exports = app;

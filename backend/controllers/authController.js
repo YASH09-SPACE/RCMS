@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { validationResult, body } = require('express-validator');
 const User = require('../models/User');
+const OTP = require('../models/OTP');
+const { sendEmail } = require('../services/emailService');
 
 /**
  * Generate JWT token
@@ -23,7 +25,11 @@ const register = async (req, res, next) => {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { name, email, mobile, password } = req.body;
+    const { name, email, mobile, password, otp } = req.body;
+
+    if (!otp) {
+      return res.status(400).json({ success: false, message: 'OTP is required for registration' });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({
@@ -39,6 +45,12 @@ const register = async (req, res, next) => {
       });
     }
 
+    // Verify OTP
+    const otpRecord = await OTP.findOne({ email, otp });
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
     // Create citizen user
     const user = await User.create({
       name,
@@ -47,6 +59,9 @@ const register = async (req, res, next) => {
       password,
       role: 'citizen'
     });
+
+    // Delete OTP record after successful registration
+    await OTP.deleteOne({ _id: otpRecord._id });
 
     // Generate token
     const token = generateToken(user._id);
@@ -97,7 +112,7 @@ const login = async (req, res, next) => {
     if (!user.isActive) {
       return res.status(401).json({
         success: false,
-        message: 'Account has been deactivated. Contact administrator.'
+        message: 'You are suspended. Please contact the main administrator at superadmin@rcms.com to reactivate your account.'
       });
     }
 
@@ -155,6 +170,129 @@ const getMe = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Forgot Password (Send OTP)
+ * @route   POST /api/auth/forgot-password
+ * @access  Public
+ */
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'There is no user with that email' });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({ success: false, message: 'You are suspended. For reopen connect to main administrator: ybvyas786@gmail.com' });
+    }
+
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    user.resetPasswordOtp = otp;
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    // Import here to avoid circular dep if any
+    const { sendEmail } = require('../services/emailService');
+
+    const message = `
+      <h2>RCMS Password Reset</h2>
+      <p>Your OTP code is: <strong>${otp}</strong></p>
+      <p>It expires in 10 minutes.</p>
+    `;
+
+    try {
+      await sendEmail(user.email, 'custom', { subject: 'Password Reset OTP', html: message });
+      res.json({ success: true, message: 'OTP sent to email. Please check your inbox.' });
+    } catch (err) {
+      user.resetPasswordOtp = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
+      console.log('OTP output to console (Email service fallback):', otp);
+      // In development, if email fails just print and succeed
+      res.json({ success: true, message: 'Email service failed, but for dev purposes OTP is in server console: ' + otp });
+    }
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Reset Password via OTP
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
+const resetPassword = async (req, res, next) => {
+  try {
+    const { email, otp, password } = req.body;
+
+    const user = await User.findOne({
+      email,
+      resetPasswordOtp: otp,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    // Set new password
+    user.password = password;
+    user.resetPasswordOtp = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.json({ success: true, message: 'Password successfully reset. You can now login.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Send OTP to email
+ * @route   POST /api/auth/send-otp
+ * @access  Public
+ */
+const sendOTP = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Email already registered' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store in DB (TTL index handles expiration)
+    await OTP.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { otp, createdAt: Date.now() },
+      { upsert: true, new: true }
+    );
+
+    // Send Email
+    const emailSent = await sendEmail(email, 'otpVerification', { otp });
+
+    if (!emailSent) {
+      return res.status(500).json({ success: false, message: 'Failed to send OTP email' });
+    }
+
+    res.json({ success: true, message: 'OTP sent to your email' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Validation rules
 const registerValidation = [
   body('name').trim().notEmpty().withMessage('Name is required'),
@@ -172,6 +310,9 @@ module.exports = {
   register,
   login,
   getMe,
+  forgotPassword,
+  resetPassword,
+  sendOTP,
   registerValidation,
   loginValidation
 };

@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Wrench, Moon } from 'lucide-react';
+import { Wrench, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import '../styles/auth.css';
 
 const AuthLayout = ({ children }) => {
+  const { theme, toggleTheme } = useTheme();
   return (
     <div className="auth-layout">
       {/* Navigation Bar */}
@@ -17,8 +19,8 @@ const AuthLayout = ({ children }) => {
         </Link>
 
         <div className="auth-nav-actions">
-          <button className="theme-toggle" title="Toggle theme">
-            <Moon size={16} />
+          <button className="theme-toggle" title="Toggle theme" onClick={toggleTheme}>
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>
         </div>
       </nav>
