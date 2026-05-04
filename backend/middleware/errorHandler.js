@@ -39,7 +39,19 @@ const errorHandler = (err, req, res, next) => {
   // Multer file size error
   if (err.code === 'LIMIT_FILE_SIZE') {
     statusCode = 400;
-    message = 'File too large. Maximum size is 5MB';
+    message = 'File too large. Maximum size is 10MB per file';
+  }
+
+  // Multer file count error
+  if (err.code === 'LIMIT_FILE_COUNT') {
+    statusCode = 400;
+    message = 'Too many files. Maximum 5 files allowed';
+  }
+
+  // Multer unexpected field error
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    statusCode = 400;
+    message = 'Unexpected file field';
   }
 
   console.error(`❌ Error: ${message}`);

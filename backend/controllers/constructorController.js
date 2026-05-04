@@ -106,12 +106,15 @@ const updateTaskStatus = async (req, res, next) => {
     // Process image uploads if marking as completed
     const uploadedImages = [];
     if (req.files && req.files.length > 0) {
+      console.log(`📸 Processing ${req.files.length} uploaded images for complaint ${complaint.complaintNumber}`);
       req.files.forEach(file => {
         // Handle Cloudinary OR local storage fallback
         if (file.path && file.path.startsWith('http')) {
           uploadedImages.push(file.path);
+          console.log(`✓ Cloudinary image: ${file.path}`);
         } else {
           uploadedImages.push(`/uploads/${file.filename}`);
+          console.log(`✓ Local image: /uploads/${file.filename}`);
         }
       });
     }
@@ -129,6 +132,7 @@ const updateTaskStatus = async (req, res, next) => {
     if (status === 'completed') complaint.completedAt = new Date();
     
     await complaint.save();
+    console.log(`✓ Complaint ${complaint.complaintNumber} status updated to ${status}`);
 
     // Add to history
     await ComplaintStatusHistory.create({

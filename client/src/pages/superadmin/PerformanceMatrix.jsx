@@ -12,21 +12,29 @@ const PerformanceMatrix = () => {
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [userDetail, setUserDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchData();
     fetchAlerts();
-  }, [filterRole, filterLevel]);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [filterRole, filterLevel, searchQuery]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await superAdminService.getPerformanceScores({ role: filterRole, level: filterLevel });
+      const res = await superAdminService.getPerformanceScores({ 
+        role: filterRole, 
+        level: filterLevel,
+        limit: 1000 // Request all users
+      });
       if (res.success) {
         setData(res.data);
         setSummary(res.summary);
@@ -118,6 +126,26 @@ const PerformanceMatrix = () => {
     }
   };
 
+  // Filter and search data
+  const filteredData = data.filter(row => {
+    const matchesSearch = searchQuery === '' || 
+      row.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      row.user.district?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      row.user.ward?.wardName.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <SuperAdminLayout>
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -125,8 +153,23 @@ const PerformanceMatrix = () => {
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>Performance Matrix</h1>
           <p style={{ color: 'var(--text-muted)' }}>Monitor and manage Admin and Constructor performance scores.</p>
         </div>
-        <button className="c-btn c-btn-primary" onClick={() => { fetchData(); fetchAlerts(); }} disabled={loading}>
-          <RefreshCw size={18} style={{ marginRight: '8px' }} /> Refresh
+        <button 
+          className="c-btn c-btn-primary" 
+          onClick={() => { fetchData(); fetchAlerts(); }} 
+          disabled={loading}
+          style={{ 
+            padding: '6px 12px !important', 
+            fontSize: '13px !important',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            minWidth: 'auto',
+            whiteSpace: 'nowrap',
+            width: 'auto',
+            maxWidth: '120px'
+          }}
+        >
+          <RefreshCw size={14} /> Refresh
         </button>
       </div>
 
@@ -188,9 +231,37 @@ const PerformanceMatrix = () => {
 
       {/* Filters & Table */}
       <div className="admin-table-container">
-        <div className="admin-table-header" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Staff Performance</h3>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <div className="admin-table-header" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Staff Performance</h3>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+              {filteredData.length} {filteredData.length === 1 ? 'user' : 'users'} 
+              {(searchQuery || filterRole || filterLevel) && ` (filtered from ${data.length} total)`}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Search Input */}
+            <div style={{ position: 'relative', minWidth: '200px' }}>
+              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="Search by name or location..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px 8px 36px',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  background: 'var(--bg-input)',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+            </div>
+            
+            {/* Role Filter */}
             <div className="custom-select-wrapper">
               <select className="custom-select" value={filterRole} onChange={e => setFilterRole(e.target.value)}>
                 <option value="">All Roles</option>
@@ -198,6 +269,8 @@ const PerformanceMatrix = () => {
                 <option value="constructor">Constructors</option>
               </select>
             </div>
+            
+            {/* Level Filter */}
             <div className="custom-select-wrapper">
               <select className="custom-select" value={filterLevel} onChange={e => setFilterLevel(e.target.value)}>
                 <option value="">All Levels</option>
@@ -214,83 +287,229 @@ const PerformanceMatrix = () => {
         {loading ? (
           <div className="loading-spinner" style={{ padding: '60px' }} />
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Role</th>
-                  <th>Location</th>
-                  <th>Score</th>
-                  <th>Level</th>
-                  <th>Metrics</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.length === 0 ? (
-                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '32px' }}>No performance records found</td></tr>
-                ) : data.map(row => (
-                  <tr key={row._id} className="admin-table-row" onClick={() => openDetail(row.user._id)}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <User size={18} color="var(--text-muted)" />
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{row.user.name}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{row.user.isActive ? 'Active' : 'Suspended'}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ textTransform: 'capitalize' }}>{row.role}</td>
-                    <td>
-                      <div style={{ fontSize: '13px' }}>{row.user.district?.name || 'N/A'}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{row.user.ward?.wardName || 'N/A'}</div>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ fontWeight: 700, fontSize: '16px', color: getLevelColor(row.level) }}>{row.currentScore}</div>
-                        {row.isProbation && <AlertTriangle size={14} color="var(--error)" className="pulse-anim" />}
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ 
-                        padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, textTransform: 'capitalize',
-                        background: `${getLevelColor(row.level)}22`, color: getLevelColor(row.level)
-                      }}>
-                        {row.level}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        <div>Tasks: {row.tasksCompletedOnTime} / {row.totalTasksAssigned}</div>
-                        <div>SLA Breaches: <span style={{ color: row.tasksBreachedSla > 0 ? 'var(--error)' : 'inherit' }}>{row.tasksBreachedSla}</span></div>
-                      </div>
-                    </td>
-                    <td>
-                      <button className="review-btn" onClick={(e) => { e.stopPropagation(); openDetail(row.user._id); }}>
-                        Review Profile
-                      </button>
-                    </td>
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Location</th>
+                    <th>Score</th>
+                    <th>Level</th>
+                    <th>Metrics</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.length === 0 ? (
+                    <tr><td colSpan="7" style={{ textAlign: 'center', padding: '32px' }}>
+                      {searchQuery || filterRole || filterLevel ? 'No users match your filters' : 'No performance records found'}
+                    </td></tr>
+                  ) : paginatedData.map(row => (
+                    <tr key={row._id} className="admin-table-row">
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <User size={18} color="var(--text-muted)" />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{row.user.name}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{row.user.isActive ? 'Active' : 'Suspended'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ textTransform: 'capitalize' }}>{row.role}</td>
+                      <td>
+                        <div style={{ fontSize: '13px' }}>{row.user.district?.name || 'N/A'}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{row.user.ward?.wardName || 'N/A'}</div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ fontWeight: 700, fontSize: '16px', color: getLevelColor(row.level) }}>{row.currentScore}</div>
+                          {row.isProbation && <AlertTriangle size={14} color="var(--error)" className="pulse-anim" />}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ 
+                          padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, textTransform: 'capitalize',
+                          background: `${getLevelColor(row.level)}22`, color: getLevelColor(row.level)
+                        }}>
+                          {row.level}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          <div>Tasks: {row.tasksCompletedOnTime} / {row.totalTasksAssigned}</div>
+                          <div>SLA Breaches: <span style={{ color: row.tasksBreachedSla > 0 ? 'var(--error)' : 'inherit' }}>{row.tasksBreachedSla}</span></div>
+                        </div>
+                      </td>
+                      <td>
+                        <button className="review-btn" onClick={(e) => { e.stopPropagation(); openDetail(row.user._id); }}>
+                          Review Profile
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {filteredData.length > itemsPerPage && (
+              <div style={{ 
+                padding: '16px 24px', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                borderTop: '1px solid var(--border)',
+                background: 'var(--bg-surface)'
+              }}>
+                <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredData.length)} of {filteredData.length} users
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    style={{
+                      padding: '6px 12px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      background: currentPage === 1 ? 'var(--bg-muted)' : 'var(--bg-surface)',
+                      color: currentPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      fontSize: '14px',
+                      fontWeight: 500
+                    }}
+                  >
+                    Previous
+                  </button>
+                  
+                  {/* Page Numbers */}
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {[...Array(totalPages)].map((_, index) => {
+                      const page = index + 1;
+                      // Show first page, last page, current page, and pages around current
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            style={{
+                              padding: '6px 12px',
+                              border: '1px solid var(--border)',
+                              borderRadius: '6px',
+                              background: page === currentPage ? 'var(--primary)' : 'var(--bg-surface)',
+                              color: page === currentPage ? 'white' : 'var(--text-primary)',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              fontWeight: page === currentPage ? 600 : 500,
+                              minWidth: '36px'
+                            }}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return <span key={page} style={{ padding: '6px 4px', color: 'var(--text-muted)' }}>...</span>;
+                      }
+                      return null;
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      padding: '6px 12px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      background: currentPage === totalPages ? 'var(--bg-muted)' : 'var(--bg-surface)',
+                      color: currentPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      fontSize: '14px',
+                      fontWeight: 500
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Detail Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)} style={{ display: 'flex' }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', width: '90%', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-            <div className="modal-header">
-              <h2 className="modal-title">Performance Detail</h2>
-              <button className="modal-close" onClick={() => setShowModal(false)}><XCircle size={24} /></button>
+        <div 
+          className="modal-overlay" 
+          onClick={() => setShowModal(false)} 
+          style={{ 
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+        >
+          <div 
+            className="modal-content" 
+            onClick={e => e.stopPropagation()} 
+            style={{ 
+              maxWidth: '900px', 
+              width: '100%', 
+              maxHeight: '90vh', 
+              overflowY: 'auto', 
+              background: 'var(--bg-card)',
+              borderRadius: '12px',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              display: 'flex', 
+              flexDirection: 'column'
+            }}
+          >
+            <div className="modal-header" style={{ 
+              padding: '20px 24px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'var(--bg-surface)'
+            }}>
+              <h2 className="modal-title" style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>Performance Detail</h2>
+              <button 
+                className="modal-close" 
+                onClick={() => setShowModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-muted)',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+              >
+                <XCircle size={24} />
+              </button>
             </div>
             
-            <div className="modal-body">
+            <div className="modal-body" style={{ padding: '24px' }}>
               {detailLoading || !userDetail ? (
                 <div className="loading-spinner" style={{ padding: '40px' }} />
               ) : (

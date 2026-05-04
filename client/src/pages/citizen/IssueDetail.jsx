@@ -109,7 +109,11 @@ const IssueDetail = () => {
   };
 
   const getInitials = (name) => name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
-  const isOwner = isAuthenticated && complaint?.user?._id === user?._id;
+  const isOwner = isAuthenticated && user && complaint?.user && (
+    complaint.user._id === user._id || 
+    complaint.user === user._id || 
+    String(complaint.user._id) === String(user._id)
+  );
 
   if (loading) return <CitizenLayout><div className="loading-spinner" style={{ minHeight: '60vh' }} /></CitizenLayout>;
   if (!complaint) return (
@@ -322,7 +326,7 @@ const IssueDetail = () => {
             )}
 
             {/* Feedback Section (only for owner when completed) */}
-            {isOwner && ['completed', 'closed'].includes(complaint.status) && !complaint.feedback && (
+            {isOwner && ['completed', 'closed'].includes(complaint.status?.toLowerCase()) && !complaint.feedback && (
               <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: 'var(--radius-md)', marginBottom: '20px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>Rate the Resolution</h3>
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>

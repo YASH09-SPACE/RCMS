@@ -12,7 +12,7 @@ const { createNotification } = require('../services/notificationService');
  */
 const getPerformanceScores = async (req, res, next) => {
   try {
-    const { role, level, sort = 'score_asc', page = 1, limit = 50 } = req.query;
+    const { role, level, sort = 'score_asc', page = 1, limit = 1000 } = req.query;
 
     const query = {};
     if (role) query.role = role;
