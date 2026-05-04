@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Wrench, Search, Sun, Moon, User, LogOut, FileText, Plus, Home, ChevronDown } from 'lucide-react';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Wrench, Search, Sun, Moon, User, LogOut, FileText, Plus, Home, Globe, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './common/NotificationBell';
@@ -69,6 +69,37 @@ const CitizenLayout = ({ children }) => {
             />
           </form>
         </div>
+
+        {/* ===== NAV LINKS (center) ===== */}
+        {isAuthenticated && (
+          <div className="citizen-nav-links">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => `citizen-nav-link${isActive ? ' active' : ''}`}
+            >
+              <Globe size={15} /> Home
+            </NavLink>
+            <NavLink
+              to="/citizen/dashboard"
+              className={({ isActive }) => `citizen-nav-link${isActive ? ' active' : ''}`}
+            >
+              <Home size={15} /> Dashboard
+            </NavLink>
+            <NavLink
+              to="/citizen/my-complaints"
+              className={({ isActive }) => `citizen-nav-link${isActive ? ' active' : ''}`}
+            >
+              <FileText size={15} /> My Complaints
+            </NavLink>
+            <NavLink
+              to="/citizen/profile"
+              className={({ isActive }) => `citizen-nav-link${isActive ? ' active' : ''}`}
+            >
+              <User size={15} /> Profile
+            </NavLink>
+          </div>
+        )}
 
         <div className="nav-right">
           {/* Theme Toggle */}
