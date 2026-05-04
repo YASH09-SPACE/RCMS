@@ -171,6 +171,94 @@ const getMe = async (req, res, next) => {
 };
 
 /**
+ * @desc    Update user profile
+ * @route   PUT /api/auth/profile
+ * @access  Private
+ */
+const updateProfile = async (req, res, next) => {
+  try {
+    const { name, mobile, pincode, address } = req.body;
+
+    // Optional: check if mobile is taken by another user
+    if (mobile) {
+      const existingUser = await User.findOne({ mobile, _id: { $ne: req.user.id } });
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: 'Mobile number already registered to another user' });
+      }
+    }
+
+    const oldUser = await User.findById(req.user.id);
+    if (!oldUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const changes = [];
+    const checkChange = (fieldLabel, oldVal, newVal) => {
+      if (newVal !== undefined && newVal !== '' && String(oldVal || '') !== String(newVal || '')) {
+        changes.push({ field: fieldLabel, old: oldVal || '', new: newVal || '' });
+      }
+    };
+    
+    checkChange('Name', oldUser.name, name);
+    checkChange('Mobile', oldUser.mobile, mobile);
+    checkChange('Pincode', oldUser.pincode, pincode);
+    checkChange('Address', oldUser.address, address);
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { name, mobile, pincode, address },
+      { new: true, runValidators: true }
+    ).populate('district', 'name code').populate('ward', 'wardNumber wardName');
+
+    if (changes.length > 0 && updatedUser.email) {
+      sendEmail(updatedUser.email, 'profileUpdated', { userName: updatedUser.name, changes }).catch(err => console.error('Email error:', err));
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updatedUser
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Change user password directly
+ * @route   PUT /api/auth/change-password
+ * @access  Private
+ */
+const changePassword = async (req, res, next) => {
+  try {
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.password = newPassword;
+    await user.save(); // This triggers the pre('save') hook in User model to hash the password
+
+    if (user.email) {
+      sendEmail(user.email, 'passwordChanged', { userName: user.name }).catch(err => console.error('Email error:', err));
+    }
+
+    res.json({
+      success: true,
+      message: 'Password successfully updated'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Forgot Password (Send OTP)
  * @route   POST /api/auth/forgot-password
  * @access  Public
@@ -310,6 +398,8 @@ module.exports = {
   register,
   login,
   getMe,
+  updateProfile,
+  changePassword,
   forgotPassword,
   resetPassword,
   sendOTP,
