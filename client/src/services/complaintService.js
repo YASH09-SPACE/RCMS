@@ -5,6 +5,8 @@ export const complaintService = {
   getAll: (params) => API.get('/complaints', { params }).then(r => r.data),
   getById: (id) => API.get(`/complaints/${id}`).then(r => r.data),
   getComments: (id) => API.get(`/complaints/${id}/comments`).then(r => r.data),
+  getNearby: (lat, lng, radius = 20) =>
+    API.get('/complaints/nearby', { params: { lat, lng, radius } }).then(r => r.data),
 
   // Auth required
   create: (formData) => API.post('/complaints', formData, {
@@ -15,6 +17,7 @@ export const complaintService = {
   submitFeedback: (id, data) => API.post(`/complaints/${id}/feedback`, data).then(r => r.data),
   reopen: (id, reason) => API.put(`/complaints/${id}/reopen`, { reason }).then(r => r.data),
 };
+
 
 export const locationService = {
   getDistricts: () => API.get('/location/districts').then(r => r.data),
