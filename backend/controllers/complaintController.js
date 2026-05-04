@@ -354,11 +354,72 @@ const reopenComplaint = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get complaints within a radius of a given location (Haversine)
+ * @route   GET /api/complaints/nearby?lat=&lng=&radius=20
+ * @access  Public
+ */
+const getNearbyComplaints = async (req, res, next) => {
+  try {
+    const { lat, lng, radius = 20 } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, message: 'lat and lng are required' });
+    }
+
+    const userLat = parseFloat(lat);
+    const userLng = parseFloat(lng);
+    const radiusKm = parseFloat(radius);
+
+    // Fetch all complaints that have coordinates
+    const complaints = await Complaint.find({
+      latitude: { $ne: null },
+      longitude: { $ne: null }
+    })
+      .populate('district', 'name code')
+      .populate('ward', 'wardNumber wardName')
+      .populate('category', 'name icon')
+      .populate('user', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Haversine distance calculation
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const haversine = (lat1, lng1, lat2, lng2) => {
+      const R = 6371; // Earth radius in km
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    const nearby = complaints
+      .map((c) => ({
+        ...c,
+        distanceKm: haversine(userLat, userLng, c.latitude, c.longitude)
+      }))
+      .filter((c) => c.distanceKm <= radiusKm)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    res.json({
+      success: true,
+      count: nearby.length,
+      total: nearby.length,
+      data: nearby
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllComplaints,
   getComplaintById,
   createComplaint,
   getMyComplaints,
   submitFeedback,
-  reopenComplaint
+  reopenComplaint,
+  getNearbyComplaints
 };
