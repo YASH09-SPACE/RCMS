@@ -1,114 +1,307 @@
-import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Search, MapPin, ArrowRight, Clock, Navigation } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  Search, MapPin, ArrowRight, Clock, Navigation,
+  Loader2, AlertCircle, ChevronRight, Map as MapIcon
+} from 'lucide-react';
 import { complaintService, locationService } from '../../services/complaintService';
 import { useAuth } from '../../context/AuthContext';
+import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import CitizenLayout from '../../components/CitizenLayout';
-import CustomSelect from '../../components/CustomSelect';
-import GoogleMapViewer from '../../components/common/GoogleMapViewer';
-import SLACountdown from '../../components/common/SLACountdown';
+import IssueCard from '../../components/common/IssueCard';
 
-const categoryIcons = {
-  'Pothole': '🕳️',
-  'Street Light': '💡',
-  'Drainage': '🚰',
-  'Garbage Collection': '🗑️',
-  'Water Supply': '💧',
-  'Park Maintenance': '🌳',
+/* ─── Nearby mini-map component ──────────────────────────────── */
+const NearbyMiniMap = ({ complaints, userLocation }) => {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markersRef = useRef([]);
+  const isLoaded = useGoogleMaps();
+
+  useEffect(() => {
+    if (!isLoaded || !mapRef.current) return;
+    if (mapInstanceRef.current) return;
+    try {
+      const center = userLocation
+        ? { lat: userLocation.lat, lng: userLocation.lng }
+        : { lat: 22.2587, lng: 71.1924 };
+      const map = new window.google.maps.Map(mapRef.current, {
+        center,
+        zoom: userLocation ? 11 : 7,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        zoomControl: true,
+      });
+      mapInstanceRef.current = map;
+
+      // User location marker (blue)
+      if (userLocation) {
+        new window.google.maps.Marker({
+          position: { lat: userLocation.lat, lng: userLocation.lng },
+          map,
+          title: 'Your Location',
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 10, fillColor: '#4285f4', fillOpacity: 1,
+            strokeColor: '#fff', strokeWeight: 3,
+          },
+        });
+      }
+    } catch (e) {
+      console.error('Mini-map init error:', e);
+    }
+  }, [isLoaded, userLocation]);
+
+  // Add issue markers whenever complaints list changes
+  useEffect(() => {
+    if (!mapInstanceRef.current || !window.google) return;
+    markersRef.current.forEach(m => m.setMap(null));
+    markersRef.current = [];
+    complaints.forEach(c => {
+      if (!c.latitude || !c.longitude) return;
+      const statusColor = {
+        pending: '#f97316', assigned: '#3b82f6', in_progress: '#8b5cf6',
+        completed: '#22c55e', closed: '#22c55e', reopened: '#ef4444',
+      }[c.status] || '#f97316';
+      const marker = new window.google.maps.Marker({
+        position: { lat: c.latitude, lng: c.longitude },
+        map: mapInstanceRef.current,
+        title: c.title,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 8, fillColor: statusColor, fillOpacity: 0.9,
+          strokeColor: '#fff', strokeWeight: 2,
+        },
+      });
+      const iw = new window.google.maps.InfoWindow({
+        content: `<div style="padding:6px;min-width:160px;font-family:sans-serif">
+          <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:#1a1a1a">${c.title}</div>
+          <div style="font-size:12px;color:#555">${(c.distanceKm || 0).toFixed(1)} km away · ${c.status?.replace('_', ' ')}</div>
+        </div>`,
+      });
+      marker.addListener('click', () => iw.open(mapInstanceRef.current, marker));
+      markersRef.current.push(marker);
+    });
+  }, [complaints, isLoaded]);
+
+  if (!isLoaded) {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)' }}>
+        <Loader2 size={28} style={{ animation: 'spin 0.8s linear infinite' }} color="var(--primary)" />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
+      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+    </div>
+  );
 };
 
-const timeAgo = (date) => {
-  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-  if (seconds < 60) return 'Just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(date).toLocaleDateString();
-};
-
-const getImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `http://localhost:5001${url}`;
-};
-
+/* ─── main Home component ─────────────────────────────────────── */
 const Home = () => {
   const { isAuthenticated } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const [complaints, setComplaints] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [districts, setDistricts] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-
-  const [filters, setFilters] = useState({
-    page: 1,
-    search: searchParams.get('search') || '',
-    district: '',
-    status: '',
-    sort: 'newest'
-  });
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState('all');
   const [heroSearch, setHeroSearch] = useState(searchParams.get('search') || '');
 
+  // --- All Issues state ---
+  const [allComplaints, setAllComplaints] = useState([]);
+  const [allLoading, setAllLoading] = useState(true);
+
+  // --- Nearby state ---
+  const [nearbyComplaints, setNearbyComplaints] = useState([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyError, setNearbyError] = useState('');
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationRequested, setLocationRequested] = useState(false);
+
+  // --- My Issues state ---
+  const [myComplaints, setMyComplaints] = useState([]);
+  const [myLoading, setMyLoading] = useState(false);
+  const [myFetched, setMyFetched] = useState(false);
+
+  /* fetch latest 6 on mount */
   useEffect(() => {
-    locationService.getDistricts().then(res => {
-      if (res.success) setDistricts(res.data);
-    }).catch(() => {});
+    complaintService.getAll({ page: 1, limit: 6, sort: 'newest' })
+      .then(res => { if (res.success) setAllComplaints(res.data); })
+      .catch(() => {})
+      .finally(() => setAllLoading(false));
   }, []);
 
+  /* fetch nearby when tab selected and not yet fetched */
   useEffect(() => {
-    fetchComplaints();
-  }, [filters, activeTab]);
+    if (activeTab !== 'nearby' || locationRequested) return;
+    setLocationRequested(true);
 
-  const fetchComplaints = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        page: filters.page,
-        limit: 12,
-        sort: filters.sort,
-      };
-      if (filters.search) params.search = filters.search;
-      if (filters.district) params.district = filters.district;
-      if (filters.status) params.status = filters.status;
-
-      const res = await complaintService.getAll(params);
-      if (res.success) {
-        setComplaints(res.data);
-        setTotal(res.total);
-        setTotalPages(res.totalPages);
-      }
-    } catch (err) {
-      console.error('Failed to fetch complaints:', err);
-    } finally {
-      setLoading(false);
+    if (!navigator.geolocation) {
+      setNearbyError('Geolocation is not supported by your browser.');
+      return;
     }
-  };
+
+    setNearbyLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        try {
+          const res = await complaintService.getNearby(latitude, longitude, 20);
+          if (res.success) setNearbyComplaints(res.data);
+        } catch {
+          setNearbyError('Failed to load nearby issues.');
+        } finally {
+          setNearbyLoading(false);
+        }
+      },
+      () => {
+        setNearbyError('Location access denied. Please allow location access and try again.');
+        setNearbyLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [activeTab, locationRequested]);
+
+  /* fetch my issues when tab selected */
+  useEffect(() => {
+    if (activeTab !== 'mine' || !isAuthenticated || myFetched) return;
+    setMyLoading(true);
+    setMyFetched(true);
+    complaintService.getMine({ page: 1, limit: 20 })
+      .then(res => { if (res.success) setMyComplaints(res.data); })
+      .catch(() => {})
+      .finally(() => setMyLoading(false));
+  }, [activeTab, isAuthenticated, myFetched]);
 
   const handleHeroSearch = (e) => {
     e.preventDefault();
-    setFilters(prev => ({ ...prev, search: heroSearch, page: 1 }));
+    if (heroSearch.trim()) navigate(`/issues?search=${encodeURIComponent(heroSearch.trim())}`);
   };
 
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
+  /* retry nearby */
+  const retryNearby = () => {
+    setLocationRequested(false);
+    setNearbyError('');
+    setNearbyComplaints([]);
+    setUserLocation(null);
+  };
+
+  /* ── render helpers ── */
+  const renderAllTab = () => (
+    <>
+      {allLoading ? (
+        <div className="loading-spinner" />
+      ) : allComplaints.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">🔍</div>
+          <h3>No issues found</h3>
+          <p>Be the first to report an issue!</p>
+        </div>
+      ) : (
+        <>
+          <div className="issues-grid">
+            {allComplaints.map(c => <IssueCard key={c._id} c={c} />)}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 32 }}>
+            <Link to="/issues" className="home-show-all-btn">
+              Show All Reports <ChevronRight size={16} />
+            </Link>
+          </div>
+        </>
+      )}
+    </>
+  );
+
+  const renderNearbyTab = () => {
+    if (nearbyLoading) return (
+      <div style={{ textAlign: 'center', padding: '60px 0' }}>
+        <Loader2 size={32} style={{ animation: 'spin 0.8s linear infinite', color: 'var(--primary)' }} />
+        <p style={{ color: 'var(--text-muted)', marginTop: 12 }}>Detecting your location...</p>
+      </div>
+    );
+    if (nearbyError) return (
+      <div className="empty-state">
+        <div className="empty-state-icon"><AlertCircle size={40} color="var(--error)" /></div>
+        <h3 style={{ color: 'var(--error)' }}>Location Error</h3>
+        <p>{nearbyError}</p>
+        <button className="home-show-all-btn" onClick={retryNearby} style={{ marginTop: 12, cursor: 'pointer' }}>
+          Try Again
+        </button>
+      </div>
+    );
+    if (!locationRequested) return (
+      <div style={{ textAlign: 'center', padding: '60px 0' }}>
+        <Navigation size={40} color="var(--primary)" style={{ marginBottom: 12 }} />
+        <p style={{ color: 'var(--text-muted)' }}>Waiting for location…</p>
+      </div>
+    );
+    return (
+      <div className="nearby-layout">
+        {/* Mini Map — left */}
+        <div className="nearby-map-col">
+          <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MapIcon size={16} color="var(--primary)" />
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Issues within 20 km</span>
+            <span className="badge badge-category">{nearbyComplaints.length} found</span>
+          </div>
+          <div style={{ height: 480 }}>
+            <NearbyMiniMap complaints={nearbyComplaints} userLocation={userLocation} />
+          </div>
+        </div>
+
+        {/* Issue list — right */}
+        <div className="nearby-list-col">
+          {nearbyComplaints.length === 0 ? (
+            <div className="empty-state" style={{ padding: '40px 0' }}>
+              <div className="empty-state-icon">🗺️</div>
+              <h3>No issues nearby</h3>
+              <p>No reported issues within 20 km of your location.</p>
+            </div>
+          ) : (
+            <div className="issues-grid" style={{ gridTemplateColumns: '1fr' }}>
+              {nearbyComplaints.map(c => <IssueCard key={c._id} c={c} />)}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderMineTab = () => {
+    if (!isAuthenticated) return (
+      <div className="empty-state">
+        <div className="empty-state-icon">🔒</div>
+        <h3>Login Required</h3>
+        <p>Please log in to see your submitted reports.</p>
+        <Link to="/login" className="home-show-all-btn" style={{ marginTop: 12, display: 'inline-flex' }}>Go to Login</Link>
+      </div>
+    );
+    if (myLoading) return <div className="loading-spinner" />;
+    if (myComplaints.length === 0) return (
+      <div className="empty-state">
+        <div className="empty-state-icon">📭</div>
+        <h3>No reports yet</h3>
+        <p>You haven't submitted any issues yet.</p>
+        <Link to="/citizen/raise" className="home-show-all-btn" style={{ marginTop: 12, display: 'inline-flex' }}>
+          Report an Issue
+        </Link>
+      </div>
+    );
+    return (
+      <div className="issues-grid">
+        {myComplaints.map(c => <IssueCard key={c._id} c={c} />)}
+      </div>
+    );
   };
 
   return (
     <CitizenLayout>
       {/* ===== HERO ===== */}
       <section className="hero">
-        <h1>
-          Report & Track <span className="highlight">Infrastructure Issues</span>
-        </h1>
+        <h1>Report &amp; Track <span className="highlight">Infrastructure Issues</span></h1>
         <p>Help improve Gujarat's roads, drainage, and public spaces. Your reports drive real change.</p>
-
         <form className="hero-search" onSubmit={handleHeroSearch}>
           <Search size={18} className="search-icon" />
           <input
@@ -117,22 +310,20 @@ const Home = () => {
             value={heroSearch}
             onChange={(e) => setHeroSearch(e.target.value)}
           />
-          <button type="submit" className="search-btn">
-            <ArrowRight size={16} />
-          </button>
+          <button type="submit" className="search-btn"><ArrowRight size={16} /></button>
         </form>
       </section>
 
       {/* ===== CONTENT ===== */}
       <div className="citizen-content">
-        {/* Tabs + Filters */}
+        {/* Tabs */}
         <div className="section-bar">
           <div className="tabs">
             <button className={`tab ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>
               All Issues
             </button>
             <button className={`tab ${activeTab === 'nearby' ? 'active' : ''}`} onClick={() => setActiveTab('nearby')}>
-              Nearby
+              <Navigation size={14} style={{ marginRight: 4 }} /> Nearby
             </button>
             {isAuthenticated && (
               <button className={`tab ${activeTab === 'mine' ? 'active' : ''}`} onClick={() => setActiveTab('mine')}>
@@ -140,158 +331,12 @@ const Home = () => {
               </button>
             )}
           </div>
-
-          <div className="filters-row">
-            <button className="c-btn c-btn-outline" onClick={() => setActiveTab(activeTab === 'map' ? 'all' : 'map')} style={{ marginRight: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <Navigation size={16} /> {activeTab === 'map' ? 'Hide Live Map' : 'View Live Map'}
-            </button>
-            <CustomSelect
-              variant="pill"
-              placeholder="All Districts"
-              value={filters.district}
-              onChange={(val) => handleFilterChange('district', val)}
-              options={[
-                { value: '', label: 'All Districts' },
-                ...districts.map(d => ({ value: d._id, label: d.name }))
-              ]}
-            />
-
-            <CustomSelect
-              variant="pill"
-              placeholder="All Status"
-              value={filters.status}
-              onChange={(val) => handleFilterChange('status', val)}
-              options={[
-                { value: '', label: 'All Status' },
-                { value: 'pending', label: 'Pending' },
-                { value: 'assigned', label: 'Assigned' },
-                { value: 'in_progress', label: 'In Progress' },
-                { value: 'completed', label: 'Completed' },
-                { value: 'reopened', label: 'Reopened' },
-              ]}
-            />
-
-            <CustomSelect
-              variant="pill"
-              placeholder="Sort By"
-              value={filters.sort}
-              onChange={(val) => handleFilterChange('sort', val)}
-              options={[
-                { value: 'newest', label: 'Newest First' },
-                { value: 'oldest', label: 'Oldest First' },
-                { value: 'priority', label: 'Priority' },
-              ]}
-            />
-          </div>
         </div>
 
-        {/* Results info */}
-        {activeTab !== 'map' && !loading && (
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-            Showing {complaints.length} of {total} issues
-            {filters.search && <> for "<strong>{filters.search}</strong>"</>}
-          </p>
-        )}
-
-        {/* Issues Grid */}
-        {activeTab === 'map' ? (
-          <div style={{ marginTop: '24px' }}>
-            <GoogleMapViewer />
-          </div>
-        ) : loading ? (
-          <div className="loading-spinner" />
-        ) : complaints.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🔍</div>
-            <h3>No issues found</h3>
-            <p>Try adjusting your filters or search query</p>
-          </div>
-        ) : (
-          <div className="issues-grid">
-            {complaints.map(c => (
-              <Link to={`/issue/${c._id}`} className="issue-card" key={c._id}>
-                {c.images && c.images.length > 0 ? (
-                  <img src={getImageUrl(c.images[0])} alt={c.title} className="issue-card-img" />
-                ) : (
-                  <div className="issue-card-img placeholder">
-                    <span style={{ fontSize: '40px' }}>{categoryIcons[c.category?.name] || '📋'}</span>
-                  </div>
-                )}
-
-                <div className="issue-card-body">
-                  <div className="issue-card-tags">
-                    <span className="badge badge-category">
-                      {c.category?.name || 'General'}
-                    </span>
-                    <span className={`badge badge-status badge-${c.status}`}>
-                      {c.status?.replace('_', ' ')}
-                    </span>
-                    {c.priority && (
-                      <span className={`badge badge-${c.priority}`}>
-                        {c.priority}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="issue-card-title">{c.title}</div>
-
-                  {/* SLA Countdown */}
-                  {c.slaDueDate && (
-                    <div style={{ marginBottom: '8px' }}>
-                      <SLACountdown 
-                        slaDueDate={c.slaDueDate} 
-                        isSlaBreached={c.isSlaBreached}
-                        complaintStatus={c.status}
-                        size="small"
-                      />
-                    </div>
-                  )}
-
-                  <div className="issue-card-meta">
-                    <span className="issue-card-meta-item">
-                      <MapPin size={12} />
-                      {c.district?.name || 'Gujarat'}
-                    </span>
-                    <span className="issue-card-meta-item">
-                      <Clock size={12} />
-                      {timeAgo(c.createdAt)}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {activeTab !== 'map' && totalPages > 1 && (
-          <div className="pagination">
-            <button
-              disabled={filters.page <= 1}
-              onClick={() => setFilters(prev => ({ ...prev, page: prev.page - 1 }))}
-            >
-              ‹
-            </button>
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-              const page = i + 1;
-              return (
-                <button
-                  key={page}
-                  className={filters.page === page ? 'active' : ''}
-                  onClick={() => setFilters(prev => ({ ...prev, page }))}
-                >
-                  {page}
-                </button>
-              );
-            })}
-            <button
-              disabled={filters.page >= totalPages}
-              onClick={() => setFilters(prev => ({ ...prev, page: prev.page + 1 }))}
-            >
-              ›
-            </button>
-          </div>
-        )}
+        {/* Tab Content */}
+        {activeTab === 'all' && renderAllTab()}
+        {activeTab === 'nearby' && renderNearbyTab()}
+        {activeTab === 'mine' && renderMineTab()}
       </div>
     </CitizenLayout>
   );
