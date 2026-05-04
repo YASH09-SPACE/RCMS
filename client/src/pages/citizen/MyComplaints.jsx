@@ -4,19 +4,9 @@ import { Plus, MapPin, Clock, Filter } from 'lucide-react';
 import { complaintService } from '../../services/complaintService';
 import CitizenLayout from '../../components/CitizenLayout';
 import CustomSelect from '../../components/CustomSelect';
-import SLACountdown from '../../components/common/SLACountdown';
+import IssueCard from '../../components/common/IssueCard';
 
-const timeAgo = (date) => {
-  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-  if (seconds < 60) return 'Just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(date).toLocaleDateString();
-};
+
 
 const MyComplaints = () => {
   const [complaints, setComplaints] = useState([]);
@@ -112,35 +102,7 @@ const MyComplaints = () => {
           </div>
         ) : (
           <div className="issues-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-            {complaints.map(c => (
-              <Link to={`/issue/${c._id}`} className="issue-card" key={c._id}>
-                <div className="issue-card-body">
-                  <div className="issue-card-tags">
-                    <span className="badge badge-category">{c.category?.name}</span>
-                    <span className={`badge badge-status badge-${c.status}`}>{c.status?.replace('_', ' ')}</span>
-                  </div>
-                  <div className="issue-card-title">{c.title}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{c.complaintNumber}</div>
-                  
-                  {/* SLA Countdown */}
-                  {c.slaDueDate && (
-                    <div style={{ marginTop: '8px', marginBottom: '8px' }}>
-                      <SLACountdown 
-                        slaDueDate={c.slaDueDate} 
-                        isSlaBreached={c.isSlaBreached}
-                        complaintStatus={c.status}
-                        size="small"
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="issue-card-meta">
-                    <span className="issue-card-meta-item"><MapPin size={12} />{c.district?.name}</span>
-                    <span className="issue-card-meta-item"><Clock size={12} />{timeAgo(c.createdAt)}</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+            {complaints.map(c => <IssueCard key={c._id} c={c} />)}
           </div>
         )}
 
