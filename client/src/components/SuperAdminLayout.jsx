@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './common/NotificationBell';
-import { LayoutDashboard, LogOut, Moon, Sun, ShieldAlert, Globe, Users } from 'lucide-react';
+import { LayoutDashboard, LogOut, Moon, Sun, ShieldAlert, Globe, Users, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
 import '../styles/admin.css';
 
@@ -53,6 +53,9 @@ const SuperAdminLayout = ({ children }) => {
           </NavLink>
           <NavLink to="/superadmin/sla-breaches" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <ShieldAlert size={18} /> SLA Monitors
+          </NavLink>
+          <NavLink to="/superadmin/performance" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}>
+            <Activity size={18} /> Performance Matrix
           </NavLink>
           <NavLink to="/superadmin/complaints" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <Globe size={18} /> All Complaints

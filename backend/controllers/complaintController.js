@@ -5,6 +5,7 @@ const Feedback = require('../models/Feedback');
 const { generateComplaintNumber } = require('../utils/complaintNumberGenerator');
 const { sendEmail } = require('../services/emailService');
 const { createNotification } = require('../services/notificationService');
+const { addPoints, updateMetric, updateFeedbackAverage, POINTS } = require('../services/performanceService');
 
 /**
  * @desc    Get all public complaints (guest + citizen)
@@ -298,6 +299,21 @@ const submitFeedback = async (req, res, next) => {
       isSatisfied: rating >= 3
     });
 
+    // Performance: Score constructor based on citizen feedback
+    if (complaint.assignedConstructor) {
+      try {
+        const constructorId = complaint.assignedConstructor._id || complaint.assignedConstructor;
+        if (rating >= 4) {
+          await addPoints(constructorId, POINTS.FEEDBACK_GOOD, `Received ${rating}-star rating on ${complaint.complaintNumber}`, complaint._id);
+        } else if (rating <= 2) {
+          await addPoints(constructorId, POINTS.FEEDBACK_BAD, `Received ${rating}-star rating on ${complaint.complaintNumber}`, complaint._id);
+        }
+        await updateFeedbackAverage(constructorId, rating);
+      } catch (perfError) {
+        console.error(`\u274c Failed to update constructor performance for feedback on ${complaint.complaintNumber}:`, perfError.message);
+      }
+    }
+
     res.status(201).json({ success: true, message: 'Feedback submitted', data: feedback });
   } catch (error) {
     next(error);
@@ -345,6 +361,17 @@ const reopenComplaint = async (req, res, next) => {
       } catch (notifError) {
         console.error(`❌ Failed to create notification for complaint ${complaint.complaintNumber}:`, notifError.message);
         // Continue - notification failure should not block reopen operation
+      }
+    }
+
+    // Performance: Deduct points from constructor for reopened complaint
+    if (complaint.assignedConstructor) {
+      try {
+        const constructorId = complaint.assignedConstructor._id || complaint.assignedConstructor;
+        await addPoints(constructorId, POINTS.COMPLAINT_REOPENED, `Complaint ${complaint.complaintNumber} reopened by citizen`, complaint._id);
+        await updateMetric(constructorId, 'complaintsReopened');
+      } catch (perfError) {
+        console.error(`❌ Failed to update constructor performance for reopened ${complaint.complaintNumber}:`, perfError.message);
       }
     }
 

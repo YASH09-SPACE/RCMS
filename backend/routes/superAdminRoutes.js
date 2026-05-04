@@ -18,6 +18,15 @@ const {
   updateSLAConfig
 } = require('../controllers/superAdminController');
 
+const {
+  getPerformanceScores,
+  getPerformanceDetail,
+  getPerformanceAlerts,
+  interveneUser,
+  resetScore,
+  adjustScore
+} = require('../controllers/performanceController');
+
 // All routes require authentication and Super Admin role
 router.use(protect, authorize('super_admin'));
 
@@ -29,6 +38,14 @@ router.put('/sla-config', updateSLAConfig);
 router.get('/analytics', getDistrictAnalytics);
 router.get('/heatmap', getHeatmapData);
 router.get('/sla-breaches', getSlaBreaches);
+
+// Performance Matrix
+router.get('/performance/alerts', getPerformanceAlerts);
+router.get('/performance/:userId', getPerformanceDetail);
+router.get('/performance', getPerformanceScores);
+router.post('/performance/:userId/intervene', interveneUser);
+router.post('/performance/:userId/reset', resetScore);
+router.post('/performance/:userId/adjust', adjustScore);
 
 // Complaint Oversight
 router.get('/stats', getGlobalStats);

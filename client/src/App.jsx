@@ -40,6 +40,7 @@ import SuperAdminUsers from './pages/superadmin/SuperAdminUsers';
 import SuperAdminAnalytics from './pages/superadmin/SuperAdminAnalytics';
 import SlaBreaches from './pages/superadmin/SlaBreaches';
 import GujaratHeatmap from './pages/superadmin/GujaratHeatmap';
+import PerformanceMatrix from './pages/superadmin/PerformanceMatrix';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -189,6 +190,9 @@ function App() {
             } />
             <Route path="/superadmin/users" element={
               <ProtectedRoute allowedRoles={['super_admin']}><SuperAdminUsers /></ProtectedRoute>
+            } />
+            <Route path="/superadmin/performance" element={
+              <ProtectedRoute allowedRoles={['super_admin']}><PerformanceMatrix /></ProtectedRoute>
             } />
 
             {/* Catch-all */}

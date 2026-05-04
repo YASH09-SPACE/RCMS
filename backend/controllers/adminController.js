@@ -4,6 +4,7 @@ const ComplaintStatusHistory = require('../models/ComplaintStatusHistory');
 const SLAConfiguration = require('../models/SLAConfiguration');
 const { createNotification } = require('../services/notificationService');
 const { sendEmail } = require('../services/emailService');
+const { addPoints, updateMetric, POINTS } = require('../services/performanceService');
 
 /**
  * @desc    Get dashboard stats for admin's assigned ward
@@ -267,6 +268,24 @@ const approveCompletion = async (req, res, next) => {
       console.error(`❌ Failed to send closed email to constructor for complaint ${complaint.complaintNumber}:`, emailError.message);
     }
 
+    // Performance: Award points for successful completion
+    try {
+      // Award admin for successful closure
+      if (complaint.assignedAdmin || req.user._id) {
+        const adminId = complaint.assignedAdmin?._id || complaint.assignedAdmin || req.user._id;
+        await addPoints(adminId, POINTS.TASK_COMPLETED_ON_TIME, `Complaint ${complaint.complaintNumber} approved and closed`, complaint._id);
+        await updateMetric(adminId, 'tasksCompletedOnTime');
+      }
+      // Award constructor for completed task
+      if (complaint.assignedConstructor) {
+        const constructorId = complaint.assignedConstructor._id || complaint.assignedConstructor;
+        await addPoints(constructorId, POINTS.TASK_COMPLETED_ON_TIME, `Task ${complaint.complaintNumber} completed and verified`, complaint._id);
+        await updateMetric(constructorId, 'tasksCompletedOnTime');
+      }
+    } catch (perfError) {
+      console.error(`❌ Failed to update performance scores for complaint ${complaint.complaintNumber}:`, perfError.message);
+    }
+
     res.json({ success: true, message: 'Complaint approved and closed', data: complaint });
   } catch (err) {
     next(err);
@@ -309,6 +328,14 @@ const escalateComplaint = async (req, res, next) => {
     } catch (notifError) {
       console.error(`❌ Failed to create escalation notification for complaint ${complaint.complaintNumber}:`, notifError.message);
       // Continue - notification failure should not block escalation
+    }
+
+    // Performance: Deduct points from admin for escalation
+    try {
+      await addPoints(req.user._id, POINTS.COMPLAINT_ESCALATED, `Complaint ${complaint.complaintNumber} escalated to Super Admin`, complaint._id);
+      await updateMetric(req.user._id, 'complaintsEscalated');
+    } catch (perfError) {
+      console.error(`❌ Failed to update admin performance for escalation ${complaint.complaintNumber}:`, perfError.message);
     }
 
     res.json({ success: true, message: 'Complaint escalated successfully', data: complaint });

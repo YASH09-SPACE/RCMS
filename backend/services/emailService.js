@@ -290,6 +290,90 @@ const templates = {
         </div>
       </div>
     `
+  }),
+
+  // 14. Performance Warning - to Admin/Constructor
+  performanceWarning: (data) => ({
+    subject: `⚠️ Performance Warning - RCMS Gujarat`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
+        <div style="background: #ff9800; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">⚠️ RCMS Performance Warning</h2>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px;">
+          <h3 style="color: #e65100;">Your Performance Score Needs Attention</h3>
+          <p>Dear ${data.userName},</p>
+          <p>${data.reason}</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <tr><td style="padding: 8px; font-weight: bold;">Role:</td><td style="padding: 8px; text-transform: capitalize;">${data.role}</td></tr>
+            <tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">Current Score:</td><td style="padding: 8px; color: #ff9800; font-weight: bold; font-size: 18px;">${data.currentScore}/100</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Level:</td><td style="padding: 8px; color: #ff9800; font-weight: bold;">${data.level}</td></tr>
+          </table>
+          <div style="background: #fff3e0; padding: 15px; border-radius: 6px; border-left: 4px solid #ff9800; margin: 20px 0;">
+            <p style="margin: 0; color: #e65100;">
+              <strong>Action Required:</strong> Complete assigned tasks on time, maintain SLA compliance, and ensure quality work to improve your score. If your score drops further, your account may be placed on probation.
+            </p>
+          </div>
+          <p style="color: #666; font-size: 13px;">This is an automated message from the RCMS Performance Monitoring System.</p>
+        </div>
+      </div>
+    `
+  }),
+
+  // 15. Performance Critical - to Admin/Constructor + Super Admin
+  performanceCritical: (data) => ({
+    subject: `🚨 CRITICAL Performance Alert - ${data.userName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
+        <div style="background: #d32f2f; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">🚨 Critical Performance Alert</h2>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px;">
+          <h3 style="color: #d32f2f;">Immediate Intervention Required</h3>
+          <p>Dear Super Admin / ${data.userName},</p>
+          <p>${data.reason}</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <tr><td style="padding: 8px; font-weight: bold;">Staff Member:</td><td style="padding: 8px;">${data.userName}</td></tr>
+            <tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">Role:</td><td style="padding: 8px; text-transform: capitalize;">${data.role}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Current Score:</td><td style="padding: 8px; color: #d32f2f; font-weight: bold; font-size: 18px;">${data.currentScore}/100</td></tr>
+            <tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">Level:</td><td style="padding: 8px; color: #d32f2f; font-weight: bold;">${data.level}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Probation Deadline:</td><td style="padding: 8px; color: #d32f2f; font-weight: bold;">${data.probationDeadline}</td></tr>
+          </table>
+          <div style="background: #ffebee; padding: 15px; border-radius: 6px; border-left: 4px solid #d32f2f; margin: 20px 0;">
+            <p style="margin: 0; color: #c62828;">
+              <strong>⛔ 48-Hour Probation Active:</strong> If performance does not improve within the probation period, the account will be automatically suspended. Super Admin intervention is required.
+            </p>
+          </div>
+        </div>
+      </div>
+    `
+  }),
+
+  // 16. Performance Suspended - to Admin/Constructor + Super Admin
+  performanceSuspended: (data) => ({
+    subject: `⛔ Account Suspended - Performance - ${data.userName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
+        <div style="background: #37474f; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">⛔ Account Suspended</h2>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px;">
+          <h3 style="color: #37474f;">Account Suspended Due to Low Performance</h3>
+          <p>Dear ${data.userName},</p>
+          <p>${data.reason}</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <tr><td style="padding: 8px; font-weight: bold;">Staff Member:</td><td style="padding: 8px;">${data.userName}</td></tr>
+            <tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">Role:</td><td style="padding: 8px; text-transform: capitalize;">${data.role}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Final Score:</td><td style="padding: 8px; color: #d32f2f; font-weight: bold; font-size: 18px;">${data.currentScore}/100</td></tr>
+          </table>
+          <div style="background: #eceff1; padding: 15px; border-radius: 6px; border-left: 4px solid #37474f; margin: 20px 0;">
+            <p style="margin: 0; color: #37474f;">
+              To reinstate this account, the Super Admin must review the case and manually reset the performance score from the Performance Matrix dashboard.
+            </p>
+          </div>
+        </div>
+      </div>
+    `
   })
 };
 

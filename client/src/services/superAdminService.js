@@ -14,5 +14,14 @@ export const superAdminService = {
   // Advanced Oversight
   getAnalytics: () => API.get('/superadmin/analytics').then(r => r.data),
   getHeatmap: () => API.get('/superadmin/heatmap').then(r => r.data),
-  getSlaBreaches: () => API.get('/superadmin/sla-breaches').then(r => r.data)
+  getSlaBreaches: () => API.get('/superadmin/sla-breaches').then(r => r.data),
+
+  // Performance Matrix
+  getPerformanceScores: (params) => API.get('/superadmin/performance', { params }).then(r => r.data),
+  getPerformanceDetail: (userId) => API.get(`/superadmin/performance/${userId}`).then(r => r.data),
+  getPerformanceAlerts: () => API.get('/superadmin/performance/alerts').then(r => r.data),
+  interveneUser: (userId, data) => API.post(`/superadmin/performance/${userId}/intervene`, data).then(r => r.data),
+  resetScore: (userId, data) => API.post(`/superadmin/performance/${userId}/reset`, data).then(r => r.data),
+  adjustScore: (userId, data) => API.post(`/superadmin/performance/${userId}/adjust`, data).then(r => r.data)
 };
+

@@ -17,6 +17,8 @@ if (process.env.NODE_ENV !== 'test') {
 if (process.env.NODE_ENV !== 'test') {
   const startSlaMonitor = require('./cron/slaMonitor');
   startSlaMonitor();
+  const startPerformanceMonitor = require('./cron/performanceMonitor');
+  startPerformanceMonitor();
 }
 
 const app = express();

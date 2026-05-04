@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const Complaint = require('../models/Complaint');
 const { createNotification } = require('../services/notificationService');
+const { addPoints, updateMetric, POINTS } = require('../services/performanceService');
 
 // This job runs every 15 minutes to check SLA breaches
 const startSlaMonitor = () => {
@@ -17,6 +18,7 @@ const startSlaMonitor = () => {
         isSlaBreached: false
       })
       .populate('assignedAdmin', 'name email')
+      .populate('assignedConstructor', 'name email')
       .populate('escalatedTo', 'name email')
       .populate('user', 'name');
 
@@ -44,6 +46,34 @@ const startSlaMonitor = () => {
               console.log(`🚨 SLA breach notification sent to admin for ${complaint.complaintNumber}`);
             } catch (error) {
               console.error(`❌ Failed to notify admin for ${complaint.complaintNumber}:`, error.message);
+            }
+
+            // Performance: Deduct points from admin for SLA breach
+            try {
+              await addPoints(
+                complaint.assignedAdmin._id,
+                POINTS.SLA_BREACHED,
+                `SLA breached on complaint ${complaint.complaintNumber} (${hoursOverdue}h overdue)`,
+                complaint._id
+              );
+              await updateMetric(complaint.assignedAdmin._id, 'tasksBreachedSla');
+            } catch (perfError) {
+              console.error(`❌ Failed to update admin performance for ${complaint.complaintNumber}:`, perfError.message);
+            }
+          }
+
+          // Performance: Deduct points from constructor for SLA breach
+          if (complaint.assignedConstructor) {
+            try {
+              await addPoints(
+                complaint.assignedConstructor._id,
+                POINTS.SLA_BREACHED,
+                `SLA breached on assigned task ${complaint.complaintNumber} (${hoursOverdue}h overdue)`,
+                complaint._id
+              );
+              await updateMetric(complaint.assignedConstructor._id, 'tasksBreachedSla');
+            } catch (perfError) {
+              console.error(`❌ Failed to update constructor performance for ${complaint.complaintNumber}:`, perfError.message);
             }
           }
           
@@ -75,3 +105,4 @@ const startSlaMonitor = () => {
 };
 
 module.exports = startSlaMonitor;
+
