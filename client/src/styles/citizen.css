@@ -1758,20 +1758,50 @@
 /* ================================================================
    RESPONSIVE
    ================================================================ */
+@media (max-width: 1024px) {
+  .citizen-nav-links {
+    position: static;
+    transform: none;
+    margin-left: auto;
+    margin-right: 20px;
+  }
+}
+
 @media (max-width: 768px) {
+  .citizen-nav { padding: 0 16px; }
   .nav-search { display: none; }
+  .citizen-nav-links { display: none; } /* Hide inline links, rely on dropdown/hamburger */
   .citizen-content { padding: 16px; }
-  .hero h1 { font-size: 24px; }
+  .hero h1 { font-size: 28px; }
   .issues-grid { grid-template-columns: 1fr; }
-  .detail-body { padding: 20px; }
-  .raise-card { padding: 20px; }
-  .category-grid { grid-template-columns: repeat(2, 1fr); }
-  .c-form-row { grid-template-columns: 1fr; }
-  .section-bar { flex-direction: column; align-items: flex-start; }
+  .detail-body { padding: 16px; }
+  .raise-card { padding: 16px; }
+  .category-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .c-form-row { grid-template-columns: 1fr; gap: 16px; }
+  .section-bar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .tabs { overflow-x: auto; padding-bottom: 4px; }
+  .filters-row { justify-content: space-between; }
+  .nav-logo-text { display: none; } /* Hide text, keep icon */
+  .nav-auth-link { padding: 8px 14px; font-size: 12px; }
+  .detail-info-grid { grid-template-columns: 1fr; }
+  .my-stats { grid-template-columns: repeat(2, 1fr); }
+  .upload-area { padding: 24px 16px; }
+  
+  /* Fix detail page layout */
+  .detail-page { padding-bottom: 24px; }
+  .detail-title { font-size: 20px; }
+  .timeline { padding-left: 10px; }
 }
 
 @media (max-width: 480px) {
-  .hero { padding: 32px 12px 24px; }
-  .filters-row { width: 100%; }
-  .filter-select { flex: 1; }
+  .hero { padding: 24px 12px 20px; }
+  .hero h1 { font-size: 24px; }
+  .filters-row { width: 100%; flex-direction: column; }
+  .filter-select, .cselect-pill .cselect-trigger { width: 100%; flex: 1; }
+  .nav-btn { width: 34px; height: 34px; }
+  .nav-avatar { width: 30px; height: 30px; font-size: 12px; }
+  .my-stats { grid-template-columns: 1fr; }
+  .category-grid { grid-template-columns: 1fr; }
+  .form-actions { flex-direction: column; }
+  .c-btn { width: 100%; }
 }
