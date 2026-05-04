@@ -111,7 +111,7 @@ const CitizenLayout = ({ children }) => {
             <>
               {/* Raise Complaint CTA */}
               <Link to="/citizen/raise" className="nav-auth-link register" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Plus size={14} /> Report Issue
+                <Plus size={14} /> <span className="report-issue-text">Report Issue</span>
               </Link>
 
               {/* Notifications */}
