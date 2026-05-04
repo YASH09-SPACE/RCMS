@@ -88,19 +88,75 @@ const RaiseComplaint = () => {
     }
   };
 
-  const handleImageUpload = (e) => {
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          const MAX_DIMENSION = 1200;
+
+          if (width > height && width > MAX_DIMENSION) {
+            height *= MAX_DIMENSION / width;
+            width = MAX_DIMENSION;
+          } else if (height > MAX_DIMENSION) {
+            width *= MAX_DIMENSION / height;
+            height = MAX_DIMENSION;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) return resolve(file); // fallback
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            },
+            'image/jpeg',
+            0.7 // 70% quality, huge size reduction
+          );
+        };
+        img.onerror = () => resolve(file); // fallback
+        img.src = event.target.result;
+      };
+      reader.onerror = () => resolve(file); // fallback
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length + form.images.length > 5) {
       toast.error('Maximum 5 images allowed');
       return;
     }
-    setForm(prev => ({ ...prev, images: [...prev.images, ...files] }));
 
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (ev) => setImagePreview(prev => [...prev, ev.target.result]);
-      reader.readAsDataURL(file);
-    });
+    const toastId = toast.loading('Optimizing images for faster upload...');
+    const compressedFiles = [];
+    const previews = [];
+
+    for (const file of files) {
+      try {
+        const compressed = await compressImage(file);
+        compressedFiles.push(compressed);
+        previews.push(URL.createObjectURL(compressed));
+      } catch (err) {
+        compressedFiles.push(file);
+        previews.push(URL.createObjectURL(file));
+      }
+    }
+
+    setForm(prev => ({ ...prev, images: [...prev.images, ...compressedFiles] }));
+    setImagePreview(prev => [...prev, ...previews]);
+    toast.dismiss(toastId);
   };
 
   const removeImage = (idx) => {
