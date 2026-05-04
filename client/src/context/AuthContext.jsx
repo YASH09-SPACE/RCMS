@@ -63,6 +63,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (userData) => {
+    setUser(userData);
+    localStorage.setItem('rcms_user', JSON.stringify(userData));
+  };
+
   // Get dashboard path based on role
   const getDashboardPath = () => {
     if (!user) return '/login';
@@ -82,6 +87,7 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
+      updateUser,
       getDashboardPath,
       isAuthenticated: !!user
     }}>
