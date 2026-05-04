@@ -5,6 +5,8 @@ const {
   register,
   login,
   getMe,
+  updateProfile,
+  changePassword,
   registerValidation,
   loginValidation,
   forgotPassword,
@@ -21,5 +23,7 @@ router.post('/send-otp', sendOTP);
 
 // Protected routes
 router.get('/me', protect, getMe);
+router.put('/profile', protect, updateProfile);
+router.put('/change-password', protect, changePassword);
 
 module.exports = router;
