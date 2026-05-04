@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { constructorService } from '../../services/constructorService';
 import ConstructorLayout from '../../components/ConstructorLayout';
-import GlobalMap from '../../components/common/GlobalMap';
+import GoogleMapViewer from '../../components/common/GoogleMapViewer';
 import { HardHat, CheckCircle, Clock, CheckSquare, AlertTriangle, ListTodo, Hammer } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -86,7 +86,7 @@ const ConstructorDashboard = () => {
       </div>
 
       <div style={{ marginTop: '32px' }}>
-        <GlobalMap />
+        <GoogleMapViewer />
       </div>
 
     </ConstructorLayout>

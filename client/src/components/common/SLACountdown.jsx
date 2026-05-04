@@ -1,12 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Clock, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Clock, AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react';
 
-const SLACountdown = ({ slaDueDate, isSlaBreached, size = 'medium' }) => {
+const SLACountdown = ({ slaDueDate, isSlaBreached, size = 'medium', complaintStatus }) => {
   const [timeRemaining, setTimeRemaining] = useState(null);
-  const [status, setStatus] = useState('safe'); // safe, warning, breached
+  const [status, setStatus] = useState('safe'); // safe, warning, breached, resolved
 
   useEffect(() => {
     if (!slaDueDate) return;
+
+    // If complaint is resolved/closed, show resolved status
+    if (['completed', 'closed'].includes(complaintStatus)) {
+      setStatus('resolved');
+      setTimeRemaining(null);
+      return;
+    }
 
     const calculateTimeRemaining = () => {
       const now = new Date();
@@ -36,7 +43,7 @@ const SLACountdown = ({ slaDueDate, isSlaBreached, size = 'medium' }) => {
     const interval = setInterval(calculateTimeRemaining, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, [slaDueDate, isSlaBreached]);
+  }, [slaDueDate, isSlaBreached, complaintStatus]);
 
   if (!slaDueDate) return null;
 
@@ -51,7 +58,14 @@ const SLACountdown = ({ slaDueDate, isSlaBreached, size = 'medium' }) => {
       fontWeight: 600
     };
 
-    if (status === 'breached') {
+    if (status === 'resolved') {
+      return {
+        ...baseStyles,
+        background: 'var(--success-bg)',
+        color: 'var(--success)',
+        border: '1px solid var(--success)'
+      };
+    } else if (status === 'breached') {
       return {
         ...baseStyles,
         background: 'var(--error-bg)',
@@ -77,6 +91,7 @@ const SLACountdown = ({ slaDueDate, isSlaBreached, size = 'medium' }) => {
 
   const getIcon = () => {
     const iconSize = size === 'small' ? 14 : 16;
+    if (status === 'resolved') return <CheckCircle size={iconSize} />;
     if (status === 'breached') return <AlertCircle size={iconSize} />;
     if (status === 'warning') return <AlertTriangle size={iconSize} />;
     return <Clock size={iconSize} />;
@@ -86,9 +101,11 @@ const SLACountdown = ({ slaDueDate, isSlaBreached, size = 'medium' }) => {
     <div style={getStyles()}>
       {getIcon()}
       <span>
-        {status === 'breached' 
-          ? 'SLA BREACHED' 
-          : timeRemaining ? `${timeRemaining.hours}h ${timeRemaining.minutes}m remaining` : 'Calculating...'
+        {status === 'resolved'
+          ? 'SLA Completed'
+          : status === 'breached' 
+            ? 'SLA BREACHED' 
+            : timeRemaining ? `${timeRemaining.hours}h ${timeRemaining.minutes}m remaining` : 'Calculating...'
         }
       </span>
     </div>

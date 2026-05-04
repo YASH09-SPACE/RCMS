@@ -128,6 +128,7 @@ const MyComplaints = () => {
                       <SLACountdown 
                         slaDueDate={c.slaDueDate} 
                         isSlaBreached={c.isSlaBreached}
+                        complaintStatus={c.status}
                         size="small"
                       />
                     </div>

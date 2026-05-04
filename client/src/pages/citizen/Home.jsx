@@ -5,7 +5,7 @@ import { complaintService, locationService } from '../../services/complaintServi
 import { useAuth } from '../../context/AuthContext';
 import CitizenLayout from '../../components/CitizenLayout';
 import CustomSelect from '../../components/CustomSelect';
-import GlobalMap from '../../components/common/GlobalMap';
+import GoogleMapViewer from '../../components/common/GoogleMapViewer';
 import SLACountdown from '../../components/common/SLACountdown';
 
 const categoryIcons = {
@@ -196,7 +196,7 @@ const Home = () => {
         {/* Issues Grid */}
         {activeTab === 'map' ? (
           <div style={{ marginTop: '24px' }}>
-            <GlobalMap />
+            <GoogleMapViewer />
           </div>
         ) : loading ? (
           <div className="loading-spinner" />
@@ -241,6 +241,7 @@ const Home = () => {
                       <SLACountdown 
                         slaDueDate={c.slaDueDate} 
                         isSlaBreached={c.isSlaBreached}
+                        complaintStatus={c.status}
                         size="small"
                       />
                     </div>

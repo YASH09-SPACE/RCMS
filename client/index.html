@@ -9,6 +9,15 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Initialize callback before loading Google Maps -->
+    <script>
+      window.initGoogleMapsCallback = function() {
+        console.log('✓ Google Maps callback fired - API ready');
+        window.googleMapsReady = true;
+      };
+    </script>
+    <!-- Load Google Maps with async and callback (removed loading=async to fix warning) -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmVous8WcNJsm_7XY0c8z00bnGlNoHroU&libraries=places&callback=initGoogleMapsCallback"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

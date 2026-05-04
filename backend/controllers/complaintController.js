@@ -163,7 +163,7 @@ const createComplaint = async (req, res, next) => {
       comments: 'Complaint submitted'
     });
 
-    // Create notification (Requirement 9.1)
+    // Create notification for citizen (Requirement 9.1)
     try {
       await createNotification(
         req.user._id,
@@ -174,6 +174,27 @@ const createComplaint = async (req, res, next) => {
       );
     } catch (notifError) {
       console.error(`❌ Failed to create notification for complaint ${complaintNumber}:`, notifError.message);
+      // Continue - notification failure should not block complaint creation
+    }
+
+    // Notify Ward Admin about new complaint
+    try {
+      const User = require('../models/User');
+      const wardAdmin = await User.findOne({ role: 'admin', ward: complaint.ward, isActive: true });
+      if (wardAdmin) {
+        await createNotification(
+          wardAdmin._id,
+          'New Complaint Submitted',
+          `A new complaint (${complaintNumber}) has been submitted in your ward. Category: ${cat.name}. Please review and assign.`,
+          'info',
+          complaint._id
+        );
+        console.log(`✅ Ward admin ${wardAdmin.name} notified for new complaint ${complaintNumber}`);
+      } else {
+        console.warn(`⚠️ No active ward admin found for ward ${complaint.ward} to notify about complaint ${complaintNumber}`);
+      }
+    } catch (notifError) {
+      console.error(`❌ Failed to notify ward admin for complaint ${complaintNumber}:`, notifError.message);
       // Continue - notification failure should not block complaint creation
     }
 

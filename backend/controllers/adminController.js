@@ -189,7 +189,9 @@ const assignComplaint = async (req, res, next) => {
  */
 const approveCompletion = async (req, res, next) => {
   try {
-    const complaint = await Complaint.findById(req.params.id);
+    const complaint = await Complaint.findById(req.params.id)
+      .populate('user', 'name email')
+      .populate('assignedConstructor', 'name email');
     if (!complaint) return res.status(404).json({ success: false, message: 'Complaint not found' });
 
     if (complaint.status !== 'completed') {
@@ -207,18 +209,62 @@ const approveCompletion = async (req, res, next) => {
       comments: req.body.comments || 'Work approved and issue closed by Admin.'
     });
 
-    // Notify Citizen (Requirement 9.5)
+    // Notify Citizen (in-app)
     try {
       await createNotification(
-        complaint.user,
+        complaint.user._id || complaint.user,
         'Issue Resolved',
         `Your complaint ${complaint.complaintNumber} has been resolved and closed. Please provide your feedback!`,
         'success',
         complaint._id
       );
     } catch (notifError) {
-      console.error(`❌ Failed to create notification for user ${complaint.user}, complaint ${complaint.complaintNumber}:`, notifError.message);
-      // Continue - notification failure should not block approval
+      console.error(`❌ Failed to create notification for user, complaint ${complaint.complaintNumber}:`, notifError.message);
+    }
+
+    // Email Citizen - complaintClosed template
+    try {
+      if (complaint.user?.email) {
+        sendEmail(
+          complaint.user.email,
+          'complaintClosed',
+          { ...complaint.toObject(), complaintNumber: complaint.complaintNumber },
+          complaint.user._id || complaint.user,
+          complaint._id
+        );
+      }
+    } catch (emailError) {
+      console.error(`❌ Failed to send closed email to citizen for complaint ${complaint.complaintNumber}:`, emailError.message);
+    }
+
+    // Notify Constructor (in-app)
+    try {
+      if (complaint.assignedConstructor) {
+        await createNotification(
+          complaint.assignedConstructor._id || complaint.assignedConstructor,
+          'Task Verified & Closed',
+          `Your work on Complaint ${complaint.complaintNumber} has been verified and approved by the Admin. Great job!`,
+          'success',
+          complaint._id
+        );
+      }
+    } catch (notifError) {
+      console.error(`❌ Failed to create notification for constructor, complaint ${complaint.complaintNumber}:`, notifError.message);
+    }
+
+    // Email Constructor - taskClosedForConstructor template
+    try {
+      if (complaint.assignedConstructor?.email) {
+        sendEmail(
+          complaint.assignedConstructor.email,
+          'taskClosedForConstructor',
+          { ...complaint.toObject(), complaintNumber: complaint.complaintNumber, constructorName: complaint.assignedConstructor.name },
+          complaint.assignedConstructor._id || complaint.assignedConstructor,
+          complaint._id
+        );
+      }
+    } catch (emailError) {
+      console.error(`❌ Failed to send closed email to constructor for complaint ${complaint.complaintNumber}:`, emailError.message);
     }
 
     res.json({ success: true, message: 'Complaint approved and closed', data: complaint });
@@ -278,7 +324,7 @@ const escalateComplaint = async (req, res, next) => {
  */
 const getAdminHeatmap = async (req, res, next) => {
   try {
-    const complaints = await Complaint.find({ ward: req.user.ward, status: { $nin: ['closed'] } })
+    const complaints = await Complaint.find({ ward: req.user.ward })
       .select('title latitude longitude priority status')
       .lean();
 

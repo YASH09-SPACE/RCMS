@@ -104,6 +104,7 @@ const ConstructorTasks = () => {
                       <SLACountdown 
                         slaDueDate={t.slaDueDate} 
                         isSlaBreached={t.isSlaBreached}
+                        complaintStatus={t.status}
                         size="small"
                       />
                     ) : '-'}

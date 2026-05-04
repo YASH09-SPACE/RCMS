@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:5001/api',
+  baseURL: '/api', // Use relative URL - Vite proxy will forward to backend
   headers: {
     'Content-Type': 'application/json'
   }

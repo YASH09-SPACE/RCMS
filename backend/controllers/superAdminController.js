@@ -265,7 +265,7 @@ const getDistrictAnalytics = async (req, res, next) => {
 const getHeatmapData = async (req, res, next) => {
   try {
     // For heatmap, we usually return lat/long coordinates of active/all complaints to plot
-    const complaints = await Complaint.find({ status: { $nin: ['closed'] } })
+    const complaints = await Complaint.find({})
       .select('latitude longitude priority status')
       .lean();
 

@@ -135,8 +135,98 @@ const IssueDetail = () => {
 
         {/* Main Card */}
         <div className="detail-card">
-          {/* Image Gallery */}
-          <ImageGallery images={complaint.images} title="Original Photos" />
+          {/* Original Photos (Before) */}
+          <ImageGallery images={complaint.images} title="📸 Original Photos (Before)" />
+
+          {/* Resolution Photos (After) — Only visible when issue is resolved */}
+          {['completed', 'closed'].includes(complaint.status) && complaint.statusHistory && (() => {
+            const completionRecords = complaint.statusHistory.filter(
+              sh => sh.status === 'completed' && sh.images && sh.images.length > 0
+            );
+            if (completionRecords.length === 0) return null;
+            return (
+              <div style={{ 
+                margin: '0', 
+                padding: '20px 24px', 
+                background: 'var(--success-bg)', 
+                borderTop: '2px solid var(--success)'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  marginBottom: '16px' 
+                }}>
+                  <CheckCircle size={18} color="var(--success)" />
+                  <h3 style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 700, 
+                    color: 'var(--success)', 
+                    margin: 0 
+                  }}>
+                    Resolution Photos (After Fix)
+                  </h3>
+                </div>
+                
+                {completionRecords.map((record, idx) => (
+                  <div key={idx} style={{ marginBottom: idx < completionRecords.length - 1 ? '20px' : 0 }}>
+                    {/* Worker Info */}
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '10px', 
+                      marginBottom: '10px',
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        background: 'var(--success)',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        flexShrink: 0
+                      }}>
+                        {record.updatedBy?.name?.charAt(0) || 'W'}
+                      </div>
+                      <span>
+                        Fixed by <strong style={{ color: 'var(--text-primary)' }}>{record.updatedBy?.name || 'Worker'}</strong>
+                        {' · '}
+                        {new Date(record.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+
+                    {/* Worker's Note */}
+                    {record.comments && (
+                      <div style={{
+                        padding: '10px 14px',
+                        background: 'var(--bg-card)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '13px',
+                        color: 'var(--text-secondary)',
+                        fontStyle: 'italic',
+                        marginBottom: '12px',
+                        borderLeft: '3px solid var(--success)'
+                      }}>
+                        "{record.comments}"
+                      </div>
+                    )}
+
+                    {/* After Photos Gallery */}
+                    <ImageGallery 
+                      images={record.images} 
+                      title={`After Photos ${completionRecords.length > 1 ? `(Fix ${idx + 1})` : ''}`} 
+                    />
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           <div className="detail-body">
             {/* Header */}
@@ -171,6 +261,7 @@ const IssueDetail = () => {
                 <SLACountdown 
                   slaDueDate={complaint.slaDueDate} 
                   isSlaBreached={complaint.isSlaBreached}
+                  complaintStatus={complaint.status}
                   size="medium"
                 />
               </div>

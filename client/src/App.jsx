@@ -3,6 +3,9 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 
+// Test Page
+import TestMap from './pages/TestMap';
+
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -108,6 +111,9 @@ function App() {
           />
 
           <Routes>
+            {/* ===== TEST ROUTE ===== */}
+            <Route path="/test-map" element={<TestMap />} />
+
             {/* ===== PUBLIC ROUTES ===== */}
             <Route path="/" element={<Home />} />
             <Route path="/issue/:id" element={<IssueDetail />} />

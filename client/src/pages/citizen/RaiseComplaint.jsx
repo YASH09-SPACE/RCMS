@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Camera, Upload, MapPin, CheckCircle } from 'luci
 import { complaintService, locationService } from '../../services/complaintService';
 import CitizenLayout from '../../components/CitizenLayout';
 import CustomSelect from '../../components/CustomSelect';
-import LocationPickerMap from '../../components/common/LocationPickerMap';
+import GoogleMapPicker from '../../components/common/GoogleMapPicker';
 import toast from 'react-hot-toast';
 
 const categoryIcons = {
@@ -56,11 +56,20 @@ const RaiseComplaint = () => {
     });
   }, []);
 
-  const handleLocationSelect = async (lat, lng) => {
-    setForm(prev => ({ ...prev, latitude: lat, longitude: lng }));
+  const handleLocationSelect = async (locationData) => {
+    const { latitude, longitude, address, pincode, addressComponents } = locationData;
+    
+    setForm(prev => ({ 
+      ...prev, 
+      latitude, 
+      longitude,
+      address: address || prev.address
+    }));
+    
     setGeocoding(true);
     try {
-      const res = await locationService.reverseGeocode(lat, lng);
+      // Use pincode or coordinates to fetch ward/district from backend
+      const res = await locationService.reverseGeocode(latitude, longitude);
       if (res.success && res.data) {
         setForm(prev => ({ 
           ...prev, 
@@ -73,7 +82,7 @@ const RaiseComplaint = () => {
       }
     } catch (err) {
       setForm(prev => ({ ...prev, district: '', ward: '', districtName: '', wardName: '' }));
-      toast.error(err.response?.data?.message || 'Location could not be verified. Please click within Gujarat.');
+      toast.error(err.response?.data?.message || 'Location could not be verified. Please select within Gujarat.');
     } finally {
       setGeocoding(false);
     }
@@ -102,11 +111,15 @@ const RaiseComplaint = () => {
   const canNext = () => {
     if (step === 1) return form.category;
     if (step === 2) return form.district && form.address && !geocoding;
-    if (step === 3) return form.title && form.description;
+    if (step === 3) return form.title && form.description && form.images.length >= 3;
     return true;
   };
 
   const handleSubmit = async () => {
+    if (form.images.length < 3) {
+      toast.error('Please upload at least 3 photos as proof');
+      return;
+    }
     setLoading(true);
     try {
       const formData = new FormData();
@@ -182,7 +195,7 @@ const RaiseComplaint = () => {
               </h3>
 
               <div style={{ marginBottom: '16px' }}>
-                <LocationPickerMap onSelectLocation={handleLocationSelect} />
+                <GoogleMapPicker onSelectLocation={handleLocationSelect} />
                 {geocoding && <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--primary)', fontWeight: 600 }}>Analyzing coordinates...</div>}
                 
                 {form.districtName && !geocoding && (
@@ -236,11 +249,11 @@ const RaiseComplaint = () => {
               </div>
 
               <div className="c-form-group">
-                <label className="c-form-label">Photos (max 5)</label>
+                <label className="c-form-label">Photos (min 3, max 5) <span style={{ color: form.images.length >= 3 ? 'var(--success)' : 'var(--error)', fontWeight: 400, fontSize: '12px' }}>— {form.images.length}/3 minimum</span></label>
                 <label className="upload-area">
                   <Camera size={24} style={{ marginBottom: '8px' }} />
                   <div style={{ fontSize: '14px', fontWeight: 500 }}>Click to upload photos</div>
-                  <div style={{ fontSize: '12px', marginTop: '4px' }}>JPG, PNG up to 5MB each</div>
+                  <div style={{ fontSize: '12px', marginTop: '4px' }}>Upload at least 3 photos (JPG, PNG up to 5MB each)</div>
                   <input
                     type="file"
                     accept="image/*"

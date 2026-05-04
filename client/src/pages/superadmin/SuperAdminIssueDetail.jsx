@@ -93,6 +93,7 @@ const SuperAdminIssueDetail = () => {
                     <SLACountdown 
                       slaDueDate={complaint.slaDueDate} 
                       isSlaBreached={complaint.isSlaBreached}
+                      complaintStatus={complaint.status}
                       size="medium"
                     />
                   )}

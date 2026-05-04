@@ -84,7 +84,7 @@ const ConstructorTaskDetail = () => {
 
   const handleSubmitCompletion = async (e) => {
     e.preventDefault();
-    if (images.length === 0) return toast.error('You must upload at least 1 photo proving the work is complete.');
+    if (images.length < 3) return toast.error('You must upload at least 3 photos proving the work is complete.');
     if (!comments) return toast.error('Please add a short note about the fix.');
 
     setProcessing(true);
@@ -132,6 +132,7 @@ const ConstructorTaskDetail = () => {
                     <SLACountdown 
                       slaDueDate={task.slaDueDate} 
                       isSlaBreached={task.isSlaBreached}
+                      complaintStatus={task.status}
                       size="medium"
                     />
                   )}
@@ -191,33 +192,127 @@ const ConstructorTaskDetail = () => {
           {/* Action Box: Upload Proof */}
           {task.status === 'in_progress' && (
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '24px', borderRadius: 'var(--radius-lg)' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CheckCircle size={18} color="var(--success)" /> Submit Completion Proof
               </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
                 Upload an "after" photo clearly showing the resolved issue. This will be verified by the Admin.
               </p>
               
               <form onSubmit={handleSubmitCompletion}>
                 <div className="c-form-group">
-                  <label className="c-form-label">Completion Photo (Required)</label>
-                  <label className="image-upload-area" style={{ height: '120px', padding: '16px' }}>
+                  <label className="c-form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Completion Photos (min 3, max 5)</span>
+                    {images.length > 0 && (
+                      <span style={{
+                        background: images.length >= 3 ? 'var(--success-bg)' : 'var(--error-bg)',
+                        color: images.length >= 3 ? 'var(--success)' : 'var(--error)',
+                        padding: '2px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '11px',
+                        fontWeight: 700
+                      }}>
+                        {photoCount} / 3 minimum
+                      </span>
+                    )}
+                  </label>
+                  
+                  {/* Drag & Drop Zone */}
+                  <label 
+                    className="upload-area" 
+                    style={{ 
+                      minHeight: images.length > 0 ? '80px' : '130px',
+                      padding: images.length > 0 ? '16px' : '28px 24px',
+                      cursor: photoCount >= MAX_PHOTOS ? 'not-allowed' : 'pointer',
+                      opacity: photoCount >= MAX_PHOTOS ? 0.5 : 1,
+                      borderColor: images.length > 0 ? 'var(--success)' : undefined,
+                      background: images.length > 0 ? 'var(--success-bg)' : undefined
+                    }}
+                  >
                     <input 
                       type="file" 
                       multiple 
                       accept="image/*" 
                       onChange={handleImageChange} 
                       disabled={photoCount >= MAX_PHOTOS}
-                      required 
+                      required={images.length === 0}
+                      style={{ display: 'none' }}
                     />
-                    <Camera size={24} color={images.length > 0 ? "var(--success)" : "var(--primary)"} style={{ marginBottom: '8px' }}/>
-                    <span style={{ fontSize: '13px' }}>
+                    <Camera size={images.length > 0 ? 20 : 28} color={images.length > 0 ? "var(--success)" : "var(--primary)"} />
+                    <span style={{ fontSize: '13px', fontWeight: 500 }}>
                       {images.length > 0 
-                        ? `${photoCount} of ${MAX_PHOTOS} photos selected` 
-                        : `Click to select photos (max ${MAX_PHOTOS})`
+                        ? 'Click to change photos' 
+                        : 'Click or drag photos here'
                       }
                     </span>
+                    {images.length === 0 && (
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Upload at least 3 photos (JPG, PNG)
+                      </span>
+                    )}
                   </label>
+
+                  {/* Photo Previews */}
+                  {images.length > 0 && (
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '8px', 
+                      flexWrap: 'wrap', 
+                      marginTop: '12px' 
+                    }}>
+                      {images.map((img, idx) => (
+                        <div key={idx} style={{ 
+                          position: 'relative', 
+                          width: '72px', 
+                          height: '72px', 
+                          borderRadius: 'var(--radius-sm)', 
+                          overflow: 'hidden',
+                          border: '2px solid var(--border)',
+                          flexShrink: 0
+                        }}>
+                          <img 
+                            src={URL.createObjectURL(img)} 
+                            alt={`Preview ${idx + 1}`} 
+                            style={{ 
+                              width: '100%', 
+                              height: '100%', 
+                              objectFit: 'cover' 
+                            }} 
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const newImages = images.filter((_, i) => i !== idx);
+                              setImages(newImages);
+                              setPhotoCount(newImages.length);
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: '2px',
+                              right: '2px',
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'rgba(239, 68, 68, 0.9)',
+                              color: '#fff',
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              lineHeight: 1,
+                              padding: 0
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="c-form-group">
@@ -232,8 +327,20 @@ const ConstructorTaskDetail = () => {
                   />
                 </div>
 
-                <button type="submit" className="c-btn c-btn-primary" style={{ width: '100%' }} disabled={processing}>
-                  {processing ? 'Uploading...' : 'Submit & Close Task'}
+                <button type="submit" className="c-btn c-btn-primary" style={{ 
+                  width: '100%', 
+                  background: images.length > 0 ? 'var(--success)' : 'var(--primary)',
+                  height: '48px',
+                  fontSize: '15px',
+                  fontWeight: 700,
+                  borderRadius: 'var(--radius-md)',
+                  gap: '8px'
+                }} disabled={processing}>
+                  {processing ? 'Uploading...' : (
+                    <>
+                      <CheckCircle size={18} /> Submit & Close Task
+                    </>
+                  )}
                 </button>
               </form>
             </div>

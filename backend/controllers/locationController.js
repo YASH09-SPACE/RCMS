@@ -64,7 +64,7 @@ const getWards = async (req, res, next) => {
  */
 const getPublicHeatmap = async (req, res, next) => {
   try {
-    const complaints = await Complaint.find({ status: { $nin: ['closed'] } })
+    const complaints = await Complaint.find({})
       .select('title latitude longitude priority status')
       .lean();
 

@@ -16,3 +16,15 @@ html, body, #root {
   height: 100%;
   width: 100%;
 }
+
+/* Google Maps specific styles - ensure proper rendering */
+.gm-style,
+.gm-style > div,
+.gm-style img {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.gm-style-iw {
+  font-family: 'Inter', sans-serif !important;
+}

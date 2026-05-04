@@ -152,6 +152,7 @@ const AdminIssueDetail = () => {
               <SLACountdown 
                 slaDueDate={complaint.slaDueDate} 
                 isSlaBreached={complaint.isSlaBreached}
+                complaintStatus={complaint.status}
                 size="medium"
               />
             </div>
@@ -362,15 +363,128 @@ const AdminIssueDetail = () => {
             </div>
           )}
 
-          {/* Review / Escalate Box */}
-          {['assigned', 'in_progress', 'completed'].includes(complaint.status) && (
+          {/* Review / Escalate Box — Premium Redesign */}
+          {complaint.status === 'completed' && (
+            <div style={{ 
+              background: 'var(--bg-card)', 
+              border: '2px solid var(--success)',
+              padding: '0', 
+              borderRadius: 'var(--radius-lg)',
+              overflow: 'hidden'
+            }}>
+              {/* Header with pulse indicator */}
+              <div style={{
+                background: 'var(--success-bg)',
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                borderBottom: '1px solid rgba(34, 197, 94, 0.2)'
+              }}>
+                <div style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  background: 'var(--success)',
+                  boxShadow: '0 0 0 4px rgba(34, 197, 94, 0.2)',
+                  animation: 'pulse 2s infinite'
+                }} />
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--success)' }}>
+                    Review Required
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Constructor has submitted completion proof
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ padding: '20px' }}>
+                <div className="c-form-group" style={{ marginBottom: '16px' }}>
+                  <label className="c-form-label">Admin Remarks (Optional)</label>
+                  <textarea 
+                    className="c-form-textarea" 
+                    value={adminComment} 
+                    onChange={(e) => setAdminComment(e.target.value)}
+                    placeholder="Add verification notes..."
+                    rows="2"
+                    style={{ minHeight: '60px' }}
+                  />
+                </div>
+
+                {/* Verify & Close — Green CTA */}
+                <button 
+                  onClick={() => {
+                    if (confirm('Are you sure you want to verify and close this complaint? The citizen will be notified.')) {
+                      handleApprove();
+                    }
+                  }} 
+                  className="c-btn" 
+                  disabled={processing} 
+                  style={{ 
+                    width: '100%', 
+                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                    color: '#fff',
+                    height: '48px',
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    borderRadius: 'var(--radius-md)',
+                    border: 'none',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(34, 197, 94, 0.3)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <CheckCircle size={18} /> {processing ? 'Processing...' : 'Verify & Close Issue'}
+                </button>
+
+                {/* Divider */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  margin: '16px 0',
+                  color: 'var(--text-muted)',
+                  fontSize: '12px'
+                }}>
+                  <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+                  <span>or</span>
+                  <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+                </div>
+
+                {/* Escalate — Warning Style */}
+                <button 
+                  onClick={handleEscalate} 
+                  className="c-btn" 
+                  disabled={processing} 
+                  style={{ 
+                    width: '100%', 
+                    background: 'transparent',
+                    color: 'var(--error)',
+                    border: '1.5px solid var(--error)',
+                    height: '42px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-md)',
+                    gap: '6px',
+                    opacity: 0.85
+                  }}
+                >
+                  <AlertTriangle size={14} /> Escalate to Super Admin
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Actions for non-completed (assigned/in_progress) */}
+          {['assigned', 'in_progress'].includes(complaint.status) && (
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '24px', borderRadius: 'var(--radius-lg)' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ShieldAlert size={18} color="var(--warning)" /> Administration Actions
               </h3>
               
               <div className="c-form-group">
-                <label className="c-form-label">Admin Comment (Optional for Approval, Required for Escalation)</label>
+                <label className="c-form-label">Admin Comment (Required for Escalation)</label>
                 <textarea 
                   className="c-form-textarea" 
                   value={adminComment} 
@@ -380,16 +494,9 @@ const AdminIssueDetail = () => {
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {complaint.status === 'completed' && (
-                  <button onClick={handleApprove} className="c-btn c-btn-primary" disabled={processing} style={{ width: '100%' }}>
-                    Verify & Close Issue
-                  </button>
-                )}
-                <button onClick={handleEscalate} className="c-btn c-btn-outline" disabled={processing} style={{ width: '100%', borderColor: 'var(--error)', color: 'var(--error)' }}>
-                  <AlertTriangle size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Escalate to Super Admin
-                </button>
-              </div>
+              <button onClick={handleEscalate} className="c-btn c-btn-outline" disabled={processing} style={{ width: '100%', borderColor: 'var(--error)', color: 'var(--error)' }}>
+                <AlertTriangle size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Escalate to Super Admin
+              </button>
             </div>
           )}
 

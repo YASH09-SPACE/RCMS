@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { superAdminService } from '../../services/superAdminService';
 import SuperAdminLayout from '../../components/SuperAdminLayout';
+import GoogleMapViewer from '../../components/common/GoogleMapViewer';
 import { Users, AlertTriangle, ShieldCheck, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -76,6 +77,10 @@ const SuperAdminDashboard = () => {
           <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Manage System Users</span>
           <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Add Ward Admins & Workers</span>
         </Link>
+      </div>
+
+      <div style={{ marginTop: '32px' }}>
+        <GoogleMapViewer />
       </div>
 
     </SuperAdminLayout>

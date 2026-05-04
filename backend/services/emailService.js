@@ -204,6 +204,33 @@ const templates = {
   custom: (data) => ({
     subject: data.subject,
     html: data.html
+  }),
+
+  // 11. Task Closed/Verified - to Constructor
+  taskClosedForConstructor: (data) => ({
+    subject: `✅ Task Verified & Closed - ${data.complaintNumber}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
+        <div style="background: #2e7d32; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">🛣️ RCMS - Task Verified</h2>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px;">
+          <h3 style="color: #2e7d32;">✅ Your Work Has Been Verified & Approved</h3>
+          <p>Dear ${data.constructorName || 'Constructor'},</p>
+          <p>Great news! The Ward Admin has reviewed and approved your completion proof for the following task:</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <tr><td style="padding: 8px; font-weight: bold;">Task ID:</td><td style="padding: 8px;">${data.complaintNumber}</td></tr>
+            <tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">Issue:</td><td style="padding: 8px;">${data.title || 'N/A'}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Location:</td><td style="padding: 8px;">${data.address || 'Location provided via map'}</td></tr>
+            <tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">Status:</td><td style="padding: 8px; color: #2e7d32; font-weight: bold;">CLOSED ✅</td></tr>
+          </table>
+          <p>This complaint has been officially closed. Thank you for your excellent work in resolving this infrastructure issue!</p>
+          <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-top: 15px; text-align: center;">
+            <p style="margin: 0; color: #2e7d32; font-weight: bold;">🎉 Keep up the great work!</p>
+          </div>
+        </div>
+      </div>
+    `
   })
 };
 

@@ -214,7 +214,7 @@ const updateTaskStatus = async (req, res, next) => {
 const getConstructorHeatmap = async (req, res, next) => {
   try {
     // Constructor probably operates within their district or ward, let's limit to their assigned district
-    const complaints = await Complaint.find({ district: req.user.district, status: { $nin: ['closed'] } })
+    const complaints = await Complaint.find({ district: req.user.district })
       .select('title latitude longitude priority status')
       .lean();
 

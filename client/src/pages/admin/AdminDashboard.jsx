@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { adminService } from '../../services/adminService';
 import AdminLayout from '../../components/AdminLayout';
-import GlobalMap from '../../components/common/GlobalMap';
+import GoogleMapViewer from '../../components/common/GoogleMapViewer';
 import { Clock, AlertTriangle, CheckCircle, ListTodo, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -71,7 +71,7 @@ const AdminDashboard = () => {
       </div>
 
       <div style={{ marginTop: '32px' }}>
-         <GlobalMap />
+         <GoogleMapViewer />
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', marginTop: '32px' }}>
