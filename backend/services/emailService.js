@@ -231,6 +231,65 @@ const templates = {
         </div>
       </div>
     `
+  }),
+
+  // 12. Profile Updated
+  profileUpdated: (data) => ({
+    subject: `Your RCMS Profile Was Updated`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
+        <div style="background: #1a73e8; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">🛡️ RCMS Security Alert</h2>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px;">
+          <h3 style="color: #333;">Profile Information Updated</h3>
+          <p>Dear ${data.userName},</p>
+          <p>Your profile information was recently updated. Here are the changes made:</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0; border: 1px solid #e0e0e0;">
+            <thead>
+              <tr style="background: #f1f3f4;">
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ccc;">Field</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ccc;">Old Value</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ccc;">New Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.changes.map((change, index) => `
+                <tr style="background: ${index % 2 === 0 ? '#fff' : '#f8f9fa'};">
+                  <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">${change.field}</td>
+                  <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; color: #d32f2f;"><del>${change.old || '<i>Not set</i>'}</del></td>
+                  <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; color: #2e7d32;">${change.new || '<i>Cleared</i>'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <p>If you did not make these changes, please secure your account immediately or contact support.</p>
+        </div>
+      </div>
+    `
+  }),
+
+  // 13. Password Changed
+  passwordChanged: (data) => ({
+    subject: `Security Alert: Your Password Was Changed`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
+        <div style="background: #d32f2f; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">🛡️ Security Alert</h2>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px;">
+          <h3 style="color: #333;">Password Changed Successfully</h3>
+          <p>Dear ${data.userName},</p>
+          <p>We are writing to confirm that the password for your RCMS account was recently changed.</p>
+          <p><strong>If you made this change</strong>, no further action is required.</p>
+          <div style="background: #ffebee; padding: 15px; border-radius: 6px; border-left: 4px solid #d32f2f; margin: 20px 0;">
+            <p style="margin: 0; color: #c62828;">
+              <strong>If you did not make this change</strong>, your account may be compromised. Please reset your password immediately using the "Forgot Password" link on the login page.
+            </p>
+          </div>
+        </div>
+      </div>
+    `
   })
 };
 
