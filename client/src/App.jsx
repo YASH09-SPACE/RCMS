@@ -14,6 +14,7 @@ import ResetPassword from './pages/auth/ResetPassword';
 
 // Citizen / Public Pages
 import Home from './pages/citizen/Home';
+import AllIssues from './pages/citizen/AllIssues';
 import CitizenDashboard from './pages/citizen/CitizenDashboard';
 import IssueDetail from './pages/citizen/IssueDetail';
 import RaiseComplaint from './pages/citizen/RaiseComplaint';
@@ -116,6 +117,7 @@ function App() {
 
             {/* ===== PUBLIC ROUTES ===== */}
             <Route path="/" element={<Home />} />
+            <Route path="/issues" element={<AllIssues />} />
             <Route path="/issue/:id" element={<IssueDetail />} />
 
             {/* ===== AUTH ROUTES ===== */}
