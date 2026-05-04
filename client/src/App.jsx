@@ -20,6 +20,7 @@ import IssueDetail from './pages/citizen/IssueDetail';
 import RaiseComplaint from './pages/citizen/RaiseComplaint';
 import MyComplaints from './pages/citizen/MyComplaints';
 import Profile from './pages/citizen/Profile';
+import CitizenMap from './pages/citizen/CitizenMap';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -119,6 +120,7 @@ function App() {
             {/* ===== PUBLIC ROUTES ===== */}
             <Route path="/" element={<Home />} />
             <Route path="/issues" element={<AllIssues />} />
+            <Route path="/map" element={<CitizenMap />} />
             <Route path="/issue/:id" element={<IssueDetail />} />
 
             {/* ===== AUTH ROUTES ===== */}

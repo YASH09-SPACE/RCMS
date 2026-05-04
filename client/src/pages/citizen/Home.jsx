@@ -330,6 +330,9 @@ const Home = () => {
                 My Issues
               </button>
             )}
+            <Link to="/map" className="tab" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+              <MapIcon size={14} style={{ marginRight: 4 }} /> Map View
+            </Link>
           </div>
         </div>
 
