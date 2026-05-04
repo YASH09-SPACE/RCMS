@@ -22,7 +22,8 @@ const GoogleMapViewer = () => {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState(null);
   const [mapError, setMapError] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('pending');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [mapInitialized, setMapInitialized] = useState(false);
 
   // Initialize Map
   useEffect(() => {
@@ -72,6 +73,7 @@ const GoogleMapViewer = () => {
           map.setCenter(centerGujarat);
         }, 100);
         
+        setMapInitialized(true);
         console.log('✓ Google Map Viewer initialized successfully');
       } catch (error) {
         console.error('✗ Error initializing Google Map Viewer:', error);
@@ -149,7 +151,7 @@ const GoogleMapViewer = () => {
     });
 
     console.log('✓ GoogleMapViewer: Markers updated, total:', markersRef.current.length);
-  }, [points, isLoaded, statusFilter]);
+  }, [points, isLoaded, statusFilter, mapInitialized]);
 
   // Update user location marker
   useEffect(() => {
@@ -306,15 +308,17 @@ const GoogleMapViewer = () => {
   useEffect(() => {
     window.handleComplaintClick = (complaintId) => {
       if (isAuthenticated) {
-        if (user?.role === 'citizen') {
-          navigate(`/citizen/my-complaints/${complaintId}`);
-        } else if (user?.role === 'admin' || user?.role === 'super_admin') {
+        if (user?.role === 'admin' || user?.role === 'super_admin') {
           navigate(`/admin/complaints/${complaintId}`);
         } else if (user?.role === 'constructor') {
           navigate(`/constructor/tasks/${complaintId}`);
+        } else {
+          // Citizen role
+          navigate(`/issue/${complaintId}`);
         }
       } else {
-        navigate('/login?redirect=/citizen/raise-complaint');
+        // Unauthenticated users can also view public issue details
+        navigate(`/issue/${complaintId}`);
       }
     };
 
@@ -472,6 +476,7 @@ const GoogleMapViewer = () => {
         background: 'var(--bg-card)'
       }}>
         {[
+          { key: 'all', label: 'All', color: '#4285f4' },
           { key: 'pending', label: 'Pending', color: '#f97316' },
           { key: 'in_progress', label: 'In Progress', color: '#8b5cf6' },
           { key: 'resolved', label: 'Resolved', color: '#22c55e' },
