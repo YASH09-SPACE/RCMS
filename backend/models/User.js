@@ -33,6 +33,15 @@ const userSchema = new mongoose.Schema({
     enum: ['citizen', 'constructor', 'admin', 'super_admin'],
     required: [true, 'Role is required']
   },
+  pincode: {
+    type: String,
+    trim: true,
+    maxlength: 6
+  },
+  address: {
+    type: String,
+    trim: true
+  },
   district: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'District',
