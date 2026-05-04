@@ -11,7 +11,8 @@ const {
   createComplaint,
   getMyComplaints,
   submitFeedback,
-  reopenComplaint
+  reopenComplaint,
+  getNearbyComplaints
 } = require('../controllers/complaintController');
 
 const { getComments, addComment } = require('../controllers/commentController');
@@ -24,6 +25,7 @@ router.get('/categories', async (req, res) => {
   res.json({ success: true, data: cats });
 });
 router.get('/mine', protect, getMyComplaints); // must be before /:id
+router.get('/nearby', getNearbyComplaints);      // public nearby search
 router.get('/:id', getComplaintById);
 router.get('/:id/comments', getComments);
 
